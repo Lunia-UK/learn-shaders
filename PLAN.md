@@ -41,7 +41,7 @@ Goal: one complete lesson runs from plain files, with all engine features workin
   Port the prototype technique: transform the source so each top-level declaration can be returned as a float, render a 1×1 pass, read back exact float bits. Show values inline at the end of each code line; vec3 values get a color swatch. Click or drag on the canvas moves the probe.
   *Done when:* values shown match the CPU-computed expectation for a gradient shader (unit test on the transform, e2e test on values); refreshes ~5 times per second for animated shaders.
 
-- [ ] **0.8 Target and similarity score (`src/engine/score.ts` + TargetPanel).**
+- [x] **0.8 Target and similarity score (`src/engine/score.ts` + TargetPanel).**
   Render `solution.glsl` once at 48×48 as the target; compare the learner's render at the same size (mean absolute difference, same formula as the prototype). Show the meter; at 97% or above, mark the lesson solved and show the success message.
   *Done when:* unit tests on the score function; the solved state persists in localStorage.
 

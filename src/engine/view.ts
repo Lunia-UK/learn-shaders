@@ -4,8 +4,9 @@
 
 import { assemble, parseCompileLog, UNIFORMS } from './assemble';
 import { explainErrors, type ExplainedError } from './explain';
-import { Renderer, type ShaderProgram } from './gl';
+import { Renderer, type RenderTarget, type ShaderProgram } from './gl';
 import { PixelProbe, type ProbeReading } from './probe';
+import { similarity, TARGET_SIZE } from './score';
 
 /** Above 2, extra pixels cost a lot of GPU time for a difference few people can see. */
 export const MAX_PIXEL_RATIO = 2;
@@ -42,6 +43,8 @@ export interface ShaderViewState {
   readonly playing: boolean;
   /** Values at the probed pixel, or null when the probe is off or cannot read this code. */
   readonly probe: ProbeReading | null;
+  /** Similarity to the target (0 to 100), or null without a target. */
+  readonly score: number | null;
 }
 
 export class ShaderView {
@@ -64,6 +67,9 @@ export class ShaderView {
   private probe: PixelProbe | null = null;
   private probeUV: [number, number] | null = null;
   private lastProbeTime = 0;
+  private targetCode: string | null = null;
+  private targetPixels: Uint8Array | null = null;
+  private scoreTarget: RenderTarget | null = null;
 
   /** Returns null when the browser has no WebGL2. */
   static create(canvas: HTMLCanvasElement, options: ShaderViewOptions = {}): ShaderView | null {
@@ -80,6 +86,7 @@ export class ShaderView {
       animated: false,
       playing: options.playing ?? !prefersReducedMotion(),
       probe: null,
+      score: null,
     };
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -118,7 +125,11 @@ export class ShaderView {
     this.program = result.program;
     this.lastValid = { code, helpers };
     // The compiler drops uniforms the code never reads, so this tells whether it uses time.
-    this.setState({ errors: [], animated: result.program.uniforms.has(UNIFORMS.time) });
+    this.setState({
+      errors: [],
+      animated: result.program.uniforms.has(UNIFORMS.time),
+      score: this.computeScore(),
+    });
     if (this.probe) {
       this.probe.setCode(code, helpers);
       this.readProbe();
@@ -131,6 +142,23 @@ export class ShaderView {
     this.setState({ playing });
     this.lastTick = null;
     this.requestFrame();
+  }
+
+  /**
+   * Sets the code of the image to reproduce (a lesson's solution), or removes it with null.
+   * The target is rendered once; from then on, every successful compile updates the score.
+   */
+  setTarget(code: string | null, helpers: string[] = this.helpers): void {
+    this.targetCode = code;
+    this.targetPixels = null;
+    if (code !== null) {
+      const result = this.renderer.compile(assemble(code, { helpers }).source);
+      if (result.ok) {
+        this.targetPixels = this.snapshot(result.program, TARGET_SIZE);
+        this.renderer.free(result.program);
+      }
+    }
+    this.setState({ score: this.computeScore() });
   }
 
   /** Probes the pixel at `uv` (0 to 1 on each axis), or turns the probe off with null. */
@@ -164,8 +192,32 @@ export class ShaderView {
     this.program = null;
     this.probe?.dispose();
     this.probe = null;
+    if (this.scoreTarget) this.renderer.freeTarget(this.scoreTarget);
+    this.scoreTarget = null;
     this.listeners.clear();
     this.renderer.dispose();
+  }
+
+  /**
+   * Renders a program offscreen at size×size, at time 0 so the result does not depend on
+   * when it is taken. Returns RGBA bytes, bottom row first.
+   */
+  private snapshot(program: ShaderProgram, size: number): Uint8Array {
+    if (this.scoreTarget?.width !== size) {
+      if (this.scoreTarget) this.renderer.freeTarget(this.scoreTarget);
+      this.scoreTarget = this.renderer.createTarget(size, size);
+    }
+    const target = this.scoreTarget;
+    this.renderer.draw(program, {
+      target,
+      uniforms: { [UNIFORMS.resolution]: [size, size], [UNIFORMS.time]: 0 },
+    });
+    return this.renderer.readPixels({ target });
+  }
+
+  private computeScore(): number | null {
+    if (!this.targetPixels || !this.program) return null;
+    return similarity(this.snapshot(this.program, TARGET_SIZE), this.targetPixels);
   }
 
   private setState(changes: Partial<ShaderViewState>): void {
@@ -235,6 +287,7 @@ export class ShaderView {
     this.frameRequest = 0;
     this.program = null;
     this.probe = null;
+    this.scoreTarget = null;
   };
 
   private onContextRestored = (): void => {
@@ -243,6 +296,7 @@ export class ShaderView {
     this.renderer = renderer;
     if (this.probeUV) this.probe = new PixelProbe(renderer);
     if (this.lastValid) this.setCode(this.lastValid.code, this.lastValid.helpers);
+    if (this.targetCode !== null) this.setTarget(this.targetCode);
   };
 }
 

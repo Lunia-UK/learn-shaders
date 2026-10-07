@@ -1,0 +1,51 @@
+---
+// Dev check for the target and the similarity score, on lesson 01-pixels/01-one-color.
+// Used by tests/e2e/target.spec.ts. Not linked from the site.
+import { site } from '../../config/site';
+import { TargetCheck } from '../../components/dev/TargetCheck';
+import { getLessons } from '../../lessons/load';
+import '../../styles/tokens.css';
+
+const lesson = (await getLessons()).find((l) => l.id === '01-pixels/01-one-color')!;
+const { data } = lesson.entry;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Target check · {site.name}</title>
+  </head>
+  <body>
+    <main>
+      <h1>Target check: {data.title}</h1>
+      <p>Scrub the numbers until your image matches the target.</p>
+      <TargetCheck
+        client:load
+        lessonId={lesson.id}
+        starter={lesson.starterCode}
+        solution={lesson.solutionCode}
+        scrub={data.editor.scrub}
+        threshold={data.passThreshold}
+        success={data.success}
+      />
+    </main>
+  </body>
+</html>
+
+<style>
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    line-height: 1.5;
+    color: var(--ink);
+    background: var(--paper);
+  }
+
+  main {
+    max-width: 56rem;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+</style>

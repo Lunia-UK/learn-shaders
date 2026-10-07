@@ -27,10 +27,20 @@ export interface ShaderCanvasProps {
   onProbeMove?: (position: [number, number]) => void;
   /** Called with the values at the probed pixel each time they change. */
   onProbe?: (reading: ProbeReading | null) => void;
+  /** Code of the image to reproduce. With it, the canvas scores the code against it. */
+  target?: string;
+  /** Called with the similarity to the target (0 to 100) after each successful compile. */
+  onScore?: (score: number | null) => void;
 }
 
 const NO_HELPERS: string[] = [];
-const NOT_READY: ShaderViewState = { errors: [], animated: false, playing: false, probe: null };
+const NOT_READY: ShaderViewState = {
+  errors: [],
+  animated: false,
+  playing: false,
+  probe: null,
+  score: null,
+};
 const noSubscription = () => () => {};
 
 export function ShaderCanvas({
@@ -44,6 +54,8 @@ export function ShaderCanvas({
   probe,
   onProbeMove,
   onProbe,
+  target,
+  onScore,
 }: ShaderCanvasProps) {
   const [view, setView] = useState<ShaderView | null>(null);
   const [supported, setSupported] = useState(true);
@@ -105,6 +117,15 @@ export function ShaderCanvas({
   useEffect(() => {
     if (view) reportProbe(state.probe);
   }, [view, state.probe]);
+
+  useEffect(() => {
+    view?.setTarget(target ?? null, helpers);
+  }, [view, target, helpers]);
+
+  const reportScore = useEffectEvent((score: number | null) => onScore?.(score));
+  useEffect(() => {
+    if (view) reportScore(state.score);
+  }, [view, state.score]);
 
   return (
     <div className={styles.shaderCanvas}>

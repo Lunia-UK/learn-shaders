@@ -1,0 +1,81 @@
+.targetPanel {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  max-width: 520px;
+}
+
+.target {
+  flex: 0 0 112px;
+  margin: 0;
+}
+
+.target figcaption {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.meterArea {
+  flex: 1;
+  min-width: 0;
+}
+
+.meterHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.meterHead strong {
+  color: var(--ink);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.meter {
+  height: 8px;
+  margin: 0.4rem 0 1rem;
+  overflow: hidden;
+  background: var(--line);
+  border-radius: 4px;
+}
+
+.fill {
+  height: 100%;
+  background: var(--accent);
+  transition:
+    width 0.2s ease,
+    background-color 0.2s;
+}
+
+.done {
+  background: var(--ok);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition: none;
+  }
+}
+
+.success {
+  padding: 0.15rem 0 0.15rem 0.9rem;
+  border-left: 3px solid var(--ok);
+}
+
+.success p {
+  margin: 0 0 0.6rem;
+  font-weight: 600;
+}
+
+.solvedBefore {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--muted);
+}

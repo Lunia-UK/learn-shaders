@@ -26,12 +26,13 @@ export async function getLessons(): Promise<Lesson[]> {
   const entries = await getCollection('lessons');
   entries.sort((a, b) => a.id.localeCompare(b.id));
 
+  // Files end with a newline; the editor would show it as an empty last line.
   const lessons = entries.map((entry) => ({
     id: entry.id,
     slug: lessonSlug(entry.id),
     entry,
-    starterCode: readLessonFile(entry.id, 'starter', entry.data.starter, glslFiles),
-    solutionCode: readLessonFile(entry.id, 'solution', entry.data.solution, glslFiles),
+    starterCode: readLessonFile(entry.id, 'starter', entry.data.starter, glslFiles).trimEnd(),
+    solutionCode: readLessonFile(entry.id, 'solution', entry.data.solution, glslFiles).trimEnd(),
   }));
 
   const seen = new Map<string, string>();

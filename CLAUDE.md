@@ -59,7 +59,8 @@ src/
   styles/tokens.css         # design tokens (colors, code font), light and dark
   components/               # React islands: ShaderCanvas, CodeView, ProbeOverlay,
                             # Handles, TargetPanel, DeepDive, RealWorld, LessonLayout, CourseMap
-  lessons/                  # lesson frontmatter schema (Zod), paths, loading with .glsl code
+  lessons/                  # lesson frontmatter schema (Zod), paths, loading with .glsl code,
+                            # progress (solved lessons in localStorage)
   content.config.ts         # content collections, uses lessons/schema.ts
   content/lessons/<chapter>/<lesson>/
     lesson.mdx              # frontmatter config + text + <DeepDive> + <RealWorld>
