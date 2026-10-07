@@ -1,0 +1,90 @@
+---
+// The page shell: head, header with the site name and the theme switch, and the content.
+import ThemeToggle from '../components/ThemeToggle.astro';
+import { site } from '../config/site';
+import '../styles/global.css';
+
+interface Props {
+  /** Page title, without the site name. Leave out on the home page. */
+  title?: string;
+  description?: string;
+}
+
+const { title, description = site.description } = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title ? `${title} · ${site.name}` : site.name}</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link
+      rel="preload"
+      href="/fonts/bricolage-grotesque-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <!-- Applies a saved theme before the first paint, so the page never flashes the other one. -->
+    <script is:inline>
+      try {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+      } catch {
+        // No storage: follow the system setting.
+      }
+    </script>
+  </head>
+  <body>
+    <div class="app">
+      <header class="top">
+        <div class="identity">
+          <a class="site-name" href="/">
+            {site.name}
+          </a>
+          <slot name="subtitle" />
+        </div>
+        <div class="header-tools">
+          <slot name="header" />
+          <ThemeToggle />
+        </div>
+      </header>
+      <slot />
+    </div>
+  </body>
+</html>
+
+<style>
+  .app {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 20px clamp(16px, 3vw, 36px) 48px;
+  }
+
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px 32px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .site-name {
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+  }
+
+  .header-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+  }
+</style>

@@ -1,0 +1,132 @@
+---
+// A lesson page: text on the left, the image and the target on the right (sticky), the code
+// under the text. One column under 900px: text, image, code.
+import { render } from 'astro:content';
+import { ChapterProgress } from '../components/ChapterProgress';
+import { LessonPlayer } from '../components/LessonPlayer';
+import { lessonHref, type Lesson } from '../lessons/load';
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  lesson: Lesson;
+  /** The lessons of the same chapter, in order. */
+  chapterLessons: Lesson[];
+  /** The lesson after this one in the course, if any. */
+  next: Lesson | null;
+}
+
+const { lesson, chapterLessons, next } = Astro.props;
+const { data } = lesson.entry;
+const { Content } = await render(lesson.entry);
+---
+
+<BaseLayout title={data.title} description={data.idea}>
+  <p class="chapter" slot="subtitle">
+    Chapter {lesson.chapter.number}: {lesson.chapter.title}
+  </p>
+  <ChapterProgress
+    slot="header"
+    client:load
+    currentId={lesson.id}
+    lessons={chapterLessons.map((l) => ({
+      id: l.id,
+      number: l.number,
+      title: l.entry.data.title,
+      href: lessonHref(l),
+    }))}
+  />
+
+  <main class="grid">
+    <article class="lesson">
+      <h1>{data.title}</h1>
+      <div class="text">
+        <Content />
+      </div>
+      <details class="hint">
+        <summary class="btn">
+          <span class="show">Show a hint</span>
+          <span class="hide">Hide the hint</span>
+        </summary>
+        <p>{data.hint}</p>
+      </details>
+    </article>
+
+    <LessonPlayer
+      client:load
+      lessonId={lesson.id}
+      starter={lesson.starterCode}
+      solution={lesson.solutionCode}
+      scrub={data.editor.scrub}
+      readOnly={data.editor.readOnly}
+      tools={data.tools}
+      handles={data.handles}
+      threshold={data.passThreshold}
+      success={data.success}
+      next={next ? { href: lessonHref(next), title: next.entry.data.title } : null}
+    />
+  </main>
+</BaseLayout>
+
+<style>
+  .chapter {
+    margin: 0.3rem 0 0;
+    color: var(--muted);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-areas:
+      'lesson stage'
+      'code stage';
+    grid-template-rows: auto 1fr;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: 28px 44px;
+    align-items: start;
+  }
+
+  .lesson {
+    grid-area: lesson;
+  }
+
+  h1 {
+    margin: 0 0 0.6rem;
+    font-size: clamp(1.9rem, 4vw, 2.4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+  }
+
+  .text :global(p) {
+    max-width: 62ch;
+    margin: 0 0 0.8rem;
+  }
+
+  .hint summary {
+    list-style: none;
+  }
+
+  .hint summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .hint[open] .show,
+  .hint:not([open]) .hide {
+    display: none;
+  }
+
+  .hint p {
+    max-width: 62ch;
+    margin: 0.9rem 0 0;
+    color: var(--muted);
+  }
+
+  @media (max-width: 900px) {
+    .grid {
+      grid-template-areas:
+        'lesson'
+        'stage'
+        'code';
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

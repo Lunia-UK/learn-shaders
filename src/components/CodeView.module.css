@@ -2,6 +2,19 @@
   min-width: 0;
 }
 
+/* Looks like the editor, so the switch to it does not jump. */
+.fallback {
+  margin: 0;
+  padding: 14px 16px 14px 46px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--ink);
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
 /* While a number is being dragged, the whole page shows the sideways cursor and selects nothing. */
 :global(html.scrubbing),
 :global(html.scrubbing *) {

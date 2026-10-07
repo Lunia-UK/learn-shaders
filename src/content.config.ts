@@ -1,6 +1,6 @@
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
-import { lessonSchema } from './lessons/schema';
+import { chapterSchema, lessonSchema } from './lessons/schema';
 import { LESSONS_DIR } from './lessons/paths';
 
 const lessons = defineCollection({
@@ -13,4 +13,14 @@ const lessons = defineCollection({
   schema: lessonSchema,
 });
 
-export const collections = { lessons };
+const chapters = defineCollection({
+  loader: glob({
+    pattern: '*/chapter.yaml',
+    base: `.${LESSONS_DIR}`,
+    // "01-pixels/chapter.yaml" gets the id "01-pixels".
+    generateId: ({ entry }) => entry.replace(/\/chapter\.yaml$/, ''),
+  }),
+  schema: chapterSchema,
+});
+
+export const collections = { lessons, chapters };

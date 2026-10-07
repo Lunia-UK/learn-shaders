@@ -1,6 +1,7 @@
 // Dev check for CodeView (PLAN 0.6): scrub the numbers, see the render follow.
 // Used by /dev/code and tests/e2e/code-view.spec.ts.
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { ExplainedError } from '../../engine/explain';
 import type { ShaderView } from '../../engine/view';
 import { CodeView } from '../CodeView';
 import { ShaderCanvas } from '../ShaderCanvas';
@@ -23,6 +24,11 @@ function exposeView(view: ShaderView | null) {
 export function CodeViewCheck() {
   const [code, setCode] = useState(START);
   const [freeEdit, setFreeEdit] = useState(false);
+  const [errors, setErrors] = useState<ExplainedError[]>([]);
+  const errorLines = useMemo(
+    () => errors.flatMap((error) => (error.line === null ? [] : [error.line])),
+    [errors],
+  );
 
   return (
     <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'minmax(0, 1fr) 200px' }}>
@@ -32,6 +38,7 @@ export function CodeViewCheck() {
           onChange={setCode}
           scrub={freeEdit ? 'all' : SCRUB}
           readOnly={!freeEdit}
+          errorLines={errorLines}
         />
         <label>
           <input
@@ -45,7 +52,12 @@ export function CodeViewCheck() {
           {code}
         </output>
       </div>
-      <ShaderCanvas code={code} onView={exposeView} label="Shader under test" />
+      <ShaderCanvas
+        code={code}
+        onView={exposeView}
+        onErrors={setErrors}
+        label="Shader under test"
+      />
     </div>
   );
 }

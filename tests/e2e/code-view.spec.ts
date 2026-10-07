@@ -51,7 +51,7 @@ test('dragging a number changes the code and the render', async ({ page }) => {
   await openCheck(page);
   // 60 pixels at 0.005 per pixel: 0.20 becomes 0.50.
   await drag(page, '.cm-scrub >> nth=0', 60);
-  expect(await codeLine(page, 2)).toBe('float red = 0.50;');
+  await expect.poll(() => codeLine(page, 2)).toBe('float red = 0.50;');
   expect(
     pixelDistance(await centerPixel(page), [toByte(0.5), toByte(0.4), toByte(0.9), 255]),
   ).toBeLessThanOrEqual(1);
@@ -61,18 +61,18 @@ test('Shift while dragging gives fine steps with three decimals', async ({ page 
   await openCheck(page);
   // 50 pixels at 0.001 per pixel: 0.90 becomes 0.850.
   await drag(page, '.cm-scrub >> nth=2', -50, { shift: true });
-  expect(await codeLine(page, 4)).toBe('float blue = 0.850;');
+  await expect.poll(() => codeLine(page, 4)).toBe('float blue = 0.850;');
 });
 
 test('arrow keys change a focused number, Shift makes bigger steps', async ({ page }) => {
   await openCheck(page);
   await page.locator('.cm-scrub').nth(1).focus();
   await page.keyboard.press('ArrowUp');
-  expect(await codeLine(page, 3)).toBe('float green = 0.41;');
+  await expect.poll(() => codeLine(page, 3)).toBe('float green = 0.41;');
   await page.keyboard.press('Shift+ArrowUp');
-  expect(await codeLine(page, 3)).toBe('float green = 0.51;');
+  await expect.poll(() => codeLine(page, 3)).toBe('float green = 0.51;');
   await page.keyboard.press('ArrowLeft');
-  expect(await codeLine(page, 3)).toBe('float green = 0.50;');
+  await expect.poll(() => codeLine(page, 3)).toBe('float green = 0.50;');
   // The number keeps the focus, so the keys can be pressed again and again.
   await expect(page.locator('.cm-scrub').nth(1)).toBeFocused();
 });
@@ -88,7 +88,7 @@ test('a click without a drag focuses the number', async ({ page }) => {
   await openCheck(page);
   await page.locator('.cm-scrub').nth(2).click();
   await expect(page.locator('.cm-scrub').nth(2)).toBeFocused();
-  expect(await codeLine(page, 4)).toBe('float blue = 0.90;');
+  await expect.poll(() => codeLine(page, 4)).toBe('float blue = 0.90;');
 });
 
 test('read-only code cannot be typed into', async ({ page }) => {
@@ -110,6 +110,21 @@ test('scrubbing updates the editor in place instead of rebuilding it', async ({ 
     () => (document.querySelector('.cm-editor') as HTMLElement & { marker?: boolean }).marker,
   );
   expect(sameEditor).toBe(true);
+});
+
+test('a compile error highlights its line in the code', async ({ page }) => {
+  await openCheck(page);
+  await page.getByLabel(/Free edit/).check();
+  // Break line 3: "float green = 0.40;" becomes "float green = 0.40 + nope;".
+  await page.locator('.cm-line').nth(2).click();
+  await page.keyboard.press('End');
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.type(' + nope');
+  await expect(page.locator('.cm-error-line')).toHaveCount(1);
+  await expect(page.locator('.cm-error-line')).toContainText('nope');
+
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(page.locator('.cm-error-line')).toHaveCount(0);
 });
 
 test('free edit allows typing and makes every number scrubbable', async ({ page }) => {

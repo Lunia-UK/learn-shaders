@@ -4,6 +4,7 @@ import { EditorView, keymap, lineNumbers } from '@codemirror/view';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { LineAnnotation } from '../engine/probe';
 import { lineAnnotations, setAnnotations } from '../editor/annotations';
+import { errorLines as errorLineHighlights, setErrorLines } from '../editor/error-lines';
 import { glsl } from '../editor/glsl';
 import { scrubNumbers } from '../editor/scrub';
 import { editorTheme } from '../editor/theme';
@@ -21,9 +22,12 @@ export interface CodeViewProps {
   label?: string;
   /** Values to show at the end of lines, such as pixel probe readings. */
   annotations?: LineAnnotation[];
+  /** Lines (1-based) to highlight because a compile error points to them. */
+  errorLines?: number[];
 }
 
 const NO_ANNOTATIONS: LineAnnotation[] = [];
+const NO_LINES: number[] = [];
 
 /** Marks changes that come from the `code` prop, so they are not reported back through onChange. */
 const fromProps = Annotation.define<boolean>();
@@ -51,6 +55,7 @@ export function CodeView({
   readOnly = false,
   label = 'Shader code',
   annotations = NO_ANNOTATIONS,
+  errorLines = NO_LINES,
 }: CodeViewProps) {
   const [view, setView] = useState<EditorView | null>(null);
   // Props as they were when the editor was created; later changes are applied by the effects below.
@@ -75,6 +80,7 @@ export function CodeView({
           glsl,
           editorTheme,
           lineAnnotations,
+          errorLineHighlights,
           editableConfig.of(editableExtensions(readOnly)),
           scrubConfig.of(scrubExtensions(scrub, readOnly)),
           labelConfig.of(labelExtensions(label)),
@@ -118,5 +124,15 @@ export function CodeView({
     view?.dispatch({ effects: setAnnotations.of(annotations) });
   }, [view, annotations]);
 
-  return <div ref={attachEditor} className={styles.codeView} />;
+  useLayoutEffect(() => {
+    view?.dispatch({ effects: setErrorLines.of(errorLines) });
+  }, [view, errorLines]);
+
+  return (
+    <div className={styles.codeView}>
+      <div ref={attachEditor} />
+      {/* Plain code until the editor starts: what the server sends and what shows without JavaScript. */}
+      {!view && <pre className={styles.fallback}>{code}</pre>}
+    </div>
+  );
 }

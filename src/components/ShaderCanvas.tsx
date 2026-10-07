@@ -9,7 +9,7 @@ import {
 import type { ExplainedError } from '../engine/explain';
 import type { ProbeReading } from '../engine/probe';
 import { ShaderView, type ShaderViewState } from '../engine/view';
-import { CodeText } from './CodeText';
+import { CompileErrors } from './CompileErrors';
 import { ProbeOverlay } from './ProbeOverlay';
 import styles from './ShaderCanvas.module.css';
 
@@ -162,26 +162,7 @@ export function ShaderCanvas({
         )}
       </div>
 
-      {showErrors && state.errors.length > 0 && (
-        <div className={styles.errors} role="status">
-          <p className={styles.errorsIntro}>
-            The image shows your last working code. To update it, fix this:
-          </p>
-          <ul>
-            {state.errors.map((error, i) => (
-              <li key={i}>
-                {error.line !== null && <strong>Line {error.line}: </strong>}
-                <CodeText text={error.text} />
-                {error.text !== error.compilerMessage && (
-                  <span className={styles.compilerMessage}>
-                    Compiler says: <code>{error.compilerMessage}</code>
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {showErrors && <CompileErrors errors={state.errors} />}
     </div>
   );
 }

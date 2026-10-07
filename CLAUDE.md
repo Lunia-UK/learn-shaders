@@ -55,13 +55,15 @@ src/
     glsl-parse.ts           # number literals, top-level declarations, vec2 handles
     hash.glsl.ts            # shared GLSL helpers (sin-free hash, noise)
   editor/                   # CodeMirror extensions: GLSL language, theme, scrubbable numbers,
-                            # line annotations (probe values)
-  styles/tokens.css         # design tokens (colors, code font), light and dark
+                            # line annotations (probe values), error line highlight
+  styles/                   # tokens.css (colors, fonts, light and dark), fonts.css, global.css
+  layouts/                  # BaseLayout (head, header, theme switch), LessonLayout (lesson grid)
   components/               # React islands: ShaderCanvas, CodeView, ProbeOverlay,
                             # Handles, TargetPanel, DeepDive, RealWorld, LessonLayout, CourseMap
   lessons/                  # lesson frontmatter schema (Zod), paths, loading with .glsl code,
                             # progress (solved lessons in localStorage)
   content.config.ts         # content collections, uses lessons/schema.ts
+  content/lessons/<chapter>/chapter.yaml   # chapter title
   content/lessons/<chapter>/<lesson>/
     lesson.mdx              # frontmatter config + text + <DeepDive> + <RealWorld>
     starter.glsl            # code the learner starts from

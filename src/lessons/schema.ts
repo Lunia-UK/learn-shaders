@@ -91,3 +91,8 @@ export const lessonSchema = z
   });
 
 export type LessonData = z.output<typeof lessonSchema>;
+
+/** content/lessons/<chapter>/chapter.yaml */
+export const chapterSchema = z.object({
+  title: z.string().min(1),
+});

@@ -49,7 +49,7 @@ Goal: one complete lesson runs from plain files, with all engine features workin
   Any `vec2 name = vec2(x, y);` declaration listed in the lesson config becomes a handle on the canvas. Dragging rewrites the two literals; code view and render follow.
   *Done when:* the circle lesson from the prototype works with mouse, touch and arrow keys.
 
-- [ ] **0.10 LessonLayout.**
+- [x] **0.10 LessonLayout.**
   Two columns on desktop (text and code left, sticky render and target right), single column under 900px. Hint button, reset button, progress dots for the chapter. Light and dark themes. Tools (probe marker and values, handles, grid, time bar) appear only when the lesson lists them in `tools`.
   *Done when:* lesson 01-one-color is fully playable and matches the prototype's feel.
 
