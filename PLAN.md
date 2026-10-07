@@ -29,7 +29,7 @@ Goal: one complete lesson runs from plain files, with all engine features workin
   Define the lesson schema (see "Lesson schema" below) with Astro content collections and Zod. Create `content/lessons/01-pixels/01-one-color/` from prototype chapter 1, level 1.
   *Done when:* the build fails with a clear message if a lesson misses a required field or a referenced `.glsl` file.
 
-- [ ] **0.5 ShaderCanvas component.**
+- [x] **0.5 ShaderCanvas component.**
   React component that renders lesson code, keeps the last valid program on compile error, redraws only when needed (or every frame if the code uses `time`), caps DPR at 2, handles resize.
   *Done when:* editing code in a plain textarea updates the render; a broken edit leaves the last image and shows the mapped error.
 

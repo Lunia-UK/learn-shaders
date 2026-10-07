@@ -48,6 +48,8 @@ src/
   engine/                   # framework-free TypeScript, no DOM framework imports
     gl.ts                   # context, program compile/link, fullscreen triangle, FBOs, readPixels
     assemble.ts             # wraps lesson code into a full shader; maps error lines back
+    explain.ts              # compiler messages in plain English
+    view.ts                 # live shader on a canvas: last valid program, redraw on demand, DPR cap
     probe.ts                # source transform + float readback for the pixel probe
     score.ts                # similarity between render and target
     glsl-parse.ts           # number literals, top-level declarations, vec2 handles

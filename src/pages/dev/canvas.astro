@@ -1,0 +1,40 @@
+---
+// Dev check for ShaderCanvas: edit the code, see the render follow.
+// Used by tests/e2e/shader-canvas.spec.ts. Not linked from the site.
+import { site } from '../../config/site';
+import { ShaderCanvasCheck } from '../../components/dev/ShaderCanvasCheck';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>ShaderCanvas check · {site.name}</title>
+  </head>
+  <body>
+    <main>
+      <h1>ShaderCanvas check</h1>
+      <p>Edit the code: the image follows. Break it: the image stays and the error shows.</p>
+      <ShaderCanvasCheck client:load />
+    </main>
+  </body>
+</html>
+
+<style>
+  :root {
+    color-scheme: light dark;
+  }
+
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    line-height: 1.5;
+  }
+
+  main {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+</style>
