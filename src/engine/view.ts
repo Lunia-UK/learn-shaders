@@ -29,17 +29,27 @@ export function drawingBufferSize(
   };
 }
 
+/** What the page shows around the canvas. A new object each time something changes. */
+export interface ShaderViewState {
+  /** Errors of the last code given, explained. Empty when it compiled. */
+  readonly errors: ExplainedError[];
+  /** True when the code on screen uses `time`. */
+  readonly animated: boolean;
+  readonly playing: boolean;
+}
+
 export class ShaderView {
   /** How many times the shader was drawn. Lets tests check that idle views do not redraw. */
   framesDrawn = 0;
 
+  readonly canvas: HTMLCanvasElement;
   private renderer: Renderer;
   private program: ShaderProgram | null = null;
   /** The last code that compiled, to rebuild the program if the GPU context is lost. */
   private lastValid: { code: string; helpers: string[] } | null = null;
   private helpers: string[];
-  private animated = false;
-  private playing: boolean;
+  private currentState: ShaderViewState;
+  private readonly listeners = new Set<() => void>();
   /** Seconds of animation played so far. Pausing stops the clock instead of skipping ahead. */
   private time = 0;
   private lastTick: number | null = null;
@@ -52,20 +62,33 @@ export class ShaderView {
     return renderer ? new ShaderView(canvas, renderer, options) : null;
   }
 
-  private constructor(
-    private readonly canvas: HTMLCanvasElement,
-    renderer: Renderer,
-    options: ShaderViewOptions,
-  ) {
+  private constructor(canvas: HTMLCanvasElement, renderer: Renderer, options: ShaderViewOptions) {
+    this.canvas = canvas;
     this.renderer = renderer;
     this.helpers = options.helpers ?? [];
-    this.playing = options.playing ?? !prefersReducedMotion();
+    this.currentState = {
+      errors: [],
+      animated: false,
+      playing: options.playing ?? !prefersReducedMotion(),
+    };
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(canvas);
     canvas.addEventListener('webglcontextlost', this.onContextLost);
     canvas.addEventListener('webglcontextrestored', this.onContextRestored);
   }
+
+  get state(): ShaderViewState {
+    return this.currentState;
+  }
+
+  /** Calls `listener` whenever `state` changes. Returns a function that stops listening. */
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  };
 
   /**
    * Compiles new code. On success the view switches to it; on failure it keeps drawing
@@ -75,28 +98,23 @@ export class ShaderView {
     this.helpers = helpers;
     const shader = assemble(code, { helpers });
     const result = this.renderer.compile(shader.source);
-    if (!result.ok) return explainErrors(parseCompileLog(result.log, shader));
+    if (!result.ok) {
+      const errors = explainErrors(parseCompileLog(result.log, shader));
+      this.setState({ errors });
+      return errors;
+    }
 
     if (this.program) this.renderer.free(this.program);
     this.program = result.program;
     this.lastValid = { code, helpers };
     // The compiler drops uniforms the code never reads, so this tells whether it uses time.
-    this.animated = result.program.uniforms.has(UNIFORMS.time);
+    this.setState({ errors: [], animated: result.program.uniforms.has(UNIFORMS.time) });
     this.requestFrame();
     return [];
   }
 
-  /** True when the current code uses `time`. */
-  get isAnimated(): boolean {
-    return this.animated;
-  }
-
-  get isPlaying(): boolean {
-    return this.playing;
-  }
-
   setPlaying(playing: boolean): void {
-    this.playing = playing;
+    this.setState({ playing });
     this.lastTick = null;
     this.requestFrame();
   }
@@ -114,11 +132,17 @@ export class ShaderView {
     this.canvas.removeEventListener('webglcontextrestored', this.onContextRestored);
     if (this.program) this.renderer.free(this.program);
     this.program = null;
+    this.listeners.clear();
     this.renderer.dispose();
   }
 
+  private setState(changes: Partial<ShaderViewState>): void {
+    this.currentState = { ...this.currentState, ...changes };
+    for (const listener of this.listeners) listener();
+  }
+
   private get running(): boolean {
-    return this.animated && this.playing && this.program !== null;
+    return this.currentState.animated && this.currentState.playing && this.program !== null;
   }
 
   private requestFrame(): void {

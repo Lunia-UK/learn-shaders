@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useState, useSyncExternalStore } from 'react';
 import type { ExplainedError } from '../engine/explain';
-import { ShaderView } from '../engine/view';
+import { ShaderView, type ShaderViewState } from '../engine/view';
 import { CodeText } from './CodeText';
 import styles from './ShaderCanvas.module.css';
 
 export interface ShaderCanvasProps {
   /** Lesson code defining `vec3 color(vec2 uv)`. */
   code: string;
+  /** Shared GLSL helpers. Pass the same array between renders (a constant or a memo). */
   helpers?: string[];
   /** Accessible name of the image. */
   label?: string;
@@ -20,31 +21,30 @@ export interface ShaderCanvasProps {
   onView?: (view: ShaderView | null) => void;
 }
 
+const NO_HELPERS: string[] = [];
+const NOT_READY: ShaderViewState = { errors: [], animated: false, playing: false };
+const noSubscription = () => () => {};
+
 export function ShaderCanvas({
   code,
-  helpers,
+  helpers = NO_HELPERS,
   label = 'Shader output',
   aspectRatio = 1,
   showErrors = true,
   onErrors,
   onView,
 }: ShaderCanvasProps) {
-  const frameRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [view, setView] = useState<ShaderView | null>(null);
   const [supported, setSupported] = useState(true);
-  const [errors, setErrors] = useState<ExplainedError[]>([]);
-  const [animated, setAnimated] = useState(false);
-  const [playing, setPlaying] = useState(false);
 
+  // Runs when the frame is added to the page, and its cleanup when it is removed.
   // The canvas is created here rather than in JSX: once dispose() releases a WebGL context,
   // that canvas cannot get a new one, so every mount needs a fresh canvas.
-  useEffect(() => {
+  const attachFrame = useCallback((frame: HTMLDivElement) => {
     const canvas = document.createElement('canvas');
     canvas.className = styles.canvas;
     canvas.setAttribute('role', 'img');
-    frameRef.current!.prepend(canvas);
-    canvasRef.current = canvas;
+    frame.prepend(canvas);
 
     const created = ShaderView.create(canvas);
     if (!created) {
@@ -53,7 +53,6 @@ export function ShaderCanvas({
       return;
     }
     setView(created);
-    setPlaying(created.isPlaying);
     return () => {
       created.dispose();
       canvas.remove();
@@ -61,59 +60,60 @@ export function ShaderCanvas({
     };
   }, []);
 
-  useEffect(() => {
-    canvasRef.current?.setAttribute('aria-label', label);
-  }, [label, view]);
+  // Re-render when the view's state (errors, animated, playing) changes.
+  const state = useSyncExternalStore(
+    view ? view.subscribe : noSubscription,
+    () => view?.state ?? NOT_READY,
+    () => NOT_READY,
+  );
 
-  // onView is a callback prop: only a new view should call it, not a new callback.
   useEffect(() => {
-    onView?.(view);
+    view?.setCode(code, helpers);
+  }, [view, code, helpers]);
+
+  useEffect(() => {
+    view?.canvas.setAttribute('aria-label', label);
+  }, [view, label]);
+
+  // Effect events read the latest callback props without making the effects re-run.
+  const reportErrors = useEffectEvent((errors: ExplainedError[]) => onErrors?.(errors));
+  useEffect(() => {
+    if (view) reportErrors(state.errors);
+  }, [view, state.errors]);
+
+  const reportView = useEffectEvent((current: ShaderView | null) => onView?.(current));
+  useEffect(() => {
+    reportView(view);
   }, [view]);
-
-  // Helpers are compared by content, so a new array with the same helpers does not recompile.
-  const helpersKey = helpers?.join('\n') ?? '';
-  useEffect(() => {
-    if (!view) return;
-    const found = view.setCode(code, helpers);
-    setErrors(found);
-    setAnimated(view.isAnimated);
-    onErrors?.(found);
-  }, [view, code, helpersKey]);
-
-  function togglePlaying() {
-    if (!view) return;
-    view.setPlaying(!playing);
-    setPlaying(!playing);
-  }
 
   return (
     <div className={styles.shaderCanvas}>
-      <div ref={frameRef} className={styles.frame} style={{ aspectRatio }}>
+      <div ref={attachFrame} className={styles.frame} style={{ aspectRatio }}>
         {!supported && (
           <p className={styles.unsupported}>
             This browser cannot show shaders: WebGL2 is not available. A recent version of Chrome,
             Firefox, Edge or Safari will work.
           </p>
         )}
-        {animated && (
+        {state.animated && (
           <button
             type="button"
             className={styles.playButton}
-            onClick={togglePlaying}
-            aria-label={playing ? 'Pause animation' : 'Play animation'}
+            onClick={() => view?.setPlaying(!state.playing)}
+            aria-label={state.playing ? 'Pause animation' : 'Play animation'}
           >
-            {playing ? 'Pause' : 'Play'}
+            {state.playing ? 'Pause' : 'Play'}
           </button>
         )}
       </div>
 
-      {showErrors && errors.length > 0 && (
+      {showErrors && state.errors.length > 0 && (
         <div className={styles.errors} role="status">
           <p className={styles.errorsIntro}>
             The image shows your last working code. To update it, fix this:
           </p>
           <ul>
-            {errors.map((error, i) => (
+            {state.errors.map((error, i) => (
               <li key={i}>
                 {error.line !== null && <strong>Line {error.line}: </strong>}
                 <CodeText text={error.text} />
