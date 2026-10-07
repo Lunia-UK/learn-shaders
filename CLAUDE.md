@@ -55,7 +55,8 @@ src/
     glsl-parse.ts           # number literals, top-level declarations, vec2 handles
     hash.glsl.ts            # shared GLSL helpers (sin-free hash, noise)
   editor/                   # CodeMirror extensions: GLSL language, theme, scrubbable numbers,
-                            # line annotations (probe values), error line highlight
+                            # line annotations (probe values), error line highlight,
+                            # writable line (a text field in locked code)
   styles/                   # tokens.css (colors, fonts, light and dark), fonts.css, global.css
   layouts/                  # BaseLayout (head, header, theme switch), LessonLayout (lesson grid)
   components/               # React islands: ShaderCanvas, CodeView, ProbeOverlay,

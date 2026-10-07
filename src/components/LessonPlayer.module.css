@@ -28,6 +28,12 @@
   gap: 12px;
 }
 
+.codeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .codeHead h2 {
   margin: 0;
   font-size: 1.1rem;

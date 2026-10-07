@@ -18,11 +18,23 @@ export interface LessonPlayerProps {
   solution: string;
   scrub: LessonData['editor']['scrub'];
   readOnly: boolean;
+  /** In read-only code, the one line (1-based) the learner writes, or null. */
+  writableLine: number | null;
   tools: LessonData['tools'];
   handles: string[];
   threshold: number;
   success: string;
   next: { href: string; title: string } | null;
+}
+
+function helpText(locked: boolean, writableLine: number | null): string {
+  const scrubbing =
+    'Drag the pink numbers left or right (hold Shift for finer steps), or Tab to a number and use the arrow keys.';
+  if (!locked) {
+    return 'Type anywhere in the code: the image updates as soon as it compiles. The pink numbers can be dragged too.';
+  }
+  if (writableLine !== null) return `Write line ${writableLine} in the dashed box. ${scrubbing}`;
+  return scrubbing;
 }
 
 export function LessonPlayer({
@@ -31,6 +43,7 @@ export function LessonPlayer({
   solution,
   scrub,
   readOnly,
+  writableLine,
   tools,
   handles,
   threshold,
@@ -42,6 +55,9 @@ export function LessonPlayer({
   const hasHandles = tools.includes('handles');
 
   const [code, setCode] = useState(starter);
+  // Free edit unlocks the whole code, for learners who want to go further than the lesson.
+  const [freeEdit, setFreeEdit] = useState(false);
+  const locked = readOnly && !freeEdit;
   const [errors, setErrors] = useState<ExplainedError[]>([]);
   const [score, setScore] = useState<number | null>(null);
   // With handles in the middle of the image, the probe starts in a corner so they do not overlap.
@@ -106,24 +122,33 @@ export function LessonPlayer({
       <section className={styles.code} aria-labelledby={codeHeadingId}>
         <div className={styles.codeHead}>
           <h2 id={codeHeadingId}>Your code</h2>
-          <button type="button" className="btn" onClick={() => setCode(starter)}>
-            Start over
-          </button>
+          <div className={styles.codeActions}>
+            {readOnly && (
+              <button
+                type="button"
+                className="btn"
+                aria-pressed={freeEdit}
+                onClick={() => setFreeEdit(!freeEdit)}
+              >
+                {freeEdit ? 'Back to guided mode' : 'Edit all the code'}
+              </button>
+            )}
+            <button type="button" className="btn" onClick={() => setCode(starter)}>
+              Start over
+            </button>
+          </div>
         </div>
         <CodeView
           code={code}
           onChange={setCode}
-          scrub={scrub}
-          readOnly={readOnly}
+          scrub={freeEdit ? 'all' : scrub}
+          readOnly={locked}
+          writableLine={locked ? writableLine : null}
           annotations={annotations}
           errorLines={errorLines}
         />
         <CompileErrors errors={errors} />
-        <p className={styles.help}>
-          {readOnly
-            ? 'Drag the pink numbers left or right (hold Shift for finer steps), or Tab to a number and use the arrow keys.'
-            : 'Type in the code: the image updates as soon as it compiles. The pink numbers can be dragged too.'}
-        </p>
+        <p className={styles.help}>{helpText(locked, writableLine)}</p>
       </section>
     </>
   );

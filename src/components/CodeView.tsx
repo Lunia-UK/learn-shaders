@@ -8,6 +8,7 @@ import { errorLines as errorLineHighlights, setErrorLines } from '../editor/erro
 import { glsl } from '../editor/glsl';
 import { scrubNumbers } from '../editor/scrub';
 import { editorTheme } from '../editor/theme';
+import { writableLine as writableLineField } from '../editor/writable-line';
 import '../styles/tokens.css';
 import styles from './CodeView.module.css';
 
@@ -18,6 +19,8 @@ export interface CodeViewProps {
   scrub?: 'all' | string[];
   /** Lock the text: only the scrubbable numbers can change, and they become keyboard sliders. */
   readOnly?: boolean;
+  /** In read-only code, one line (1-based) the learner can still type, shown as a text field. */
+  writableLine?: number | null;
   /** Accessible name of the code area. */
   label?: string;
   /** Values to show at the end of lines, such as pixel probe readings. */
@@ -36,8 +39,12 @@ const editableConfig = new Compartment();
 const scrubConfig = new Compartment();
 const labelConfig = new Compartment();
 
-function editableExtensions(readOnly: boolean): Extension {
-  return [EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)];
+function editableExtensions(readOnly: boolean, writableLine: number | null): Extension {
+  return [
+    EditorState.readOnly.of(readOnly),
+    EditorView.editable.of(!readOnly),
+    readOnly && writableLine !== null ? writableLineField(writableLine) : [],
+  ];
 }
 
 function scrubExtensions(scrub: 'all' | string[], readOnly: boolean): Extension {
@@ -53,13 +60,14 @@ export function CodeView({
   onChange,
   scrub = 'all',
   readOnly = false,
+  writableLine = null,
   label = 'Shader code',
   annotations = NO_ANNOTATIONS,
   errorLines = NO_LINES,
 }: CodeViewProps) {
   const [view, setView] = useState<EditorView | null>(null);
   // Props as they were when the editor was created; later changes are applied by the effects below.
-  const initialProps = useRef({ code, scrub, readOnly, label });
+  const initialProps = useRef({ code, scrub, readOnly, writableLine, label });
   const onChangeRef = useRef(onChange);
 
   useEffect(() => {
@@ -68,7 +76,7 @@ export function CodeView({
 
   // Creates the editor once, when its container is added to the page.
   const attachEditor = useCallback((parent: HTMLDivElement) => {
-    const { code, scrub, readOnly, label } = initialProps.current;
+    const { code, scrub, readOnly, writableLine, label } = initialProps.current;
     const editor = new EditorView({
       parent,
       state: EditorState.create({
@@ -81,7 +89,7 @@ export function CodeView({
           editorTheme,
           lineAnnotations,
           errorLineHighlights,
-          editableConfig.of(editableExtensions(readOnly)),
+          editableConfig.of(editableExtensions(readOnly, writableLine)),
           scrubConfig.of(scrubExtensions(scrub, readOnly)),
           labelConfig.of(labelExtensions(label)),
           EditorView.updateListener.of((update) => {
@@ -110,11 +118,11 @@ export function CodeView({
   useLayoutEffect(() => {
     view?.dispatch({
       effects: [
-        editableConfig.reconfigure(editableExtensions(readOnly)),
+        editableConfig.reconfigure(editableExtensions(readOnly, writableLine)),
         scrubConfig.reconfigure(scrubExtensions(scrub, readOnly)),
       ],
     });
-  }, [view, scrub, readOnly]);
+  }, [view, scrub, readOnly, writableLine]);
 
   useLayoutEffect(() => {
     view?.dispatch({ effects: labelConfig.reconfigure(labelExtensions(label)) });
