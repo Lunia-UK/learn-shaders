@@ -25,7 +25,7 @@ Goal: one complete lesson runs from plain files, with all engine features workin
   Wrap `vec3 color(vec2 uv)` code with header (version, precision, `uRes`, `time`) and `main()`. Optionally prepend shared helpers. Map compiler error line numbers back to the learner's code; turn the raw log into `{ line, message }`.
   *Done when:* unit tests cover a valid shader, an undeclared identifier on line 3 reported as line 3, and helpers prepended without shifting reported lines.
 
-- [ ] **0.4 Lesson format.**
+- [x] **0.4 Lesson format.**
   Define the lesson schema (see "Lesson schema" below) with Astro content collections and Zod. Create `content/lessons/01-pixels/01-one-color/` from prototype chapter 1, level 1.
   *Done when:* the build fails with a clear message if a lesson misses a required field or a referenced `.glsl` file.
 

@@ -1,0 +1,40 @@
+---
+title: One color
+idea: A shader is a function that gives a color to every pixel of an image.
+prerequisites: []
+estimatedMinutes: 2
+
+starter: ./starter.glsl
+solution: ./solution.glsl
+
+editor:
+  scrub: [red, green, blue]
+  readOnly: true
+
+tools: [probe]
+
+hint: 'The target is orange: lots of red, some green, almost no blue.'
+success: 'Solved! You just colored every pixel of the image.'
+
+simplifications:
+  - claim: The shader runs once per pixel.
+    reality: It runs once per fragment. With multisampling, there can be several fragments per pixel.
+    completedIn: 08-gpu/02-vertex-and-fragment
+  - claim: Every pixel is computed at the same time.
+    reality: The GPU runs many pixels in parallel, in groups, but not all of them at once. How many depends on the hardware.
+    # TODO verify: lesson id not decided yet, Phase 4 (the GPU pipeline).
+    completedIn: 08-gpu/01-how-the-gpu-runs-shaders
+
+sources:
+  - title: The Book of Shaders, What is a fragment shader?
+    url: https://thebookofshaders.com/01/
+  - title: The Book of Shaders, Hello World
+    url: https://thebookofshaders.com/02/
+---
+
+A shader is a small function that the graphics card runs for every pixel of the image, all at the same time.
+It receives the position of the pixel and returns its color: three numbers between 0 and 1, for red, green and blue.
+
+Click anywhere on the image. The values shown in the code never change, because this shader ignores the position.
+
+**Your turn:** drag the numbers in the code left or right until your color matches the target.

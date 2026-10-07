@@ -54,6 +54,8 @@ src/
     hash.glsl.ts            # shared GLSL helpers (sin-free hash, noise)
   components/               # React islands: ShaderCanvas, CodeView, ProbeOverlay,
                             # Handles, TargetPanel, DeepDive, RealWorld, LessonLayout, CourseMap
+  lessons/                  # lesson frontmatter schema (Zod), paths, loading with .glsl code
+  content.config.ts         # content collections, uses lessons/schema.ts
   content/lessons/<chapter>/<lesson>/
     lesson.mdx              # frontmatter config + text + <DeepDive> + <RealWorld>
     starter.glsl            # code the learner starts from
