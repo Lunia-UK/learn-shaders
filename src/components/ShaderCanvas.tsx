@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useEffectEvent, useState, useSyncExternalStore } from 'react';
 import type { ExplainedError } from '../engine/explain';
+import type { ProbeReading } from '../engine/probe';
 import { ShaderView, type ShaderViewState } from '../engine/view';
 import { CodeText } from './CodeText';
+import { ProbeOverlay } from './ProbeOverlay';
 import styles from './ShaderCanvas.module.css';
 
 export interface ShaderCanvasProps {
@@ -17,12 +19,18 @@ export interface ShaderCanvasProps {
   showErrors?: boolean;
   /** Called after each compile with the errors found (an empty list when the code compiled). */
   onErrors?: (errors: ExplainedError[]) => void;
-  /** Gives access to the underlying view, for tools such as the probe or the export. */
+  /** Gives access to the underlying view, for tools such as the export. */
   onView?: (view: ShaderView | null) => void;
+  /** Pixel probe position (uv). Leave out to hide the probe. */
+  probe?: [number, number];
+  /** Called when the learner moves the probe; required for the probe to be shown. */
+  onProbeMove?: (position: [number, number]) => void;
+  /** Called with the values at the probed pixel each time they change. */
+  onProbe?: (reading: ProbeReading | null) => void;
 }
 
 const NO_HELPERS: string[] = [];
-const NOT_READY: ShaderViewState = { errors: [], animated: false, playing: false };
+const NOT_READY: ShaderViewState = { errors: [], animated: false, playing: false, probe: null };
 const noSubscription = () => () => {};
 
 export function ShaderCanvas({
@@ -33,6 +41,9 @@ export function ShaderCanvas({
   showErrors = true,
   onErrors,
   onView,
+  probe,
+  onProbeMove,
+  onProbe,
 }: ShaderCanvasProps) {
   const [view, setView] = useState<ShaderView | null>(null);
   const [supported, setSupported] = useState(true);
@@ -86,9 +97,21 @@ export function ShaderCanvas({
     reportView(view);
   }, [view]);
 
+  useEffect(() => {
+    view?.setProbe(probe ?? null);
+  }, [view, probe]);
+
+  const reportProbe = useEffectEvent((reading: ProbeReading | null) => onProbe?.(reading));
+  useEffect(() => {
+    if (view) reportProbe(state.probe);
+  }, [view, state.probe]);
+
   return (
     <div className={styles.shaderCanvas}>
       <div ref={attachFrame} className={styles.frame} style={{ aspectRatio }}>
+        {supported && probe && onProbeMove && (
+          <ProbeOverlay position={probe} onMove={onProbeMove} />
+        )}
         {!supported && (
           <p className={styles.unsupported}>
             This browser cannot show shaders: WebGL2 is not available. A recent version of Chrome,

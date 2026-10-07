@@ -54,7 +54,8 @@ src/
     score.ts                # similarity between render and target
     glsl-parse.ts           # number literals, top-level declarations, vec2 handles
     hash.glsl.ts            # shared GLSL helpers (sin-free hash, noise)
-  editor/                   # CodeMirror extensions: GLSL language, theme, scrubbable numbers
+  editor/                   # CodeMirror extensions: GLSL language, theme, scrubbable numbers,
+                            # line annotations (probe values)
   styles/tokens.css         # design tokens (colors, code font), light and dark
   components/               # React islands: ShaderCanvas, CodeView, ProbeOverlay,
                             # Handles, TargetPanel, DeepDive, RealWorld, LessonLayout, CourseMap

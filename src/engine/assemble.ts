@@ -41,6 +41,8 @@ export interface AssembledShader {
 export interface AssembleOptions {
   /** Shared GLSL helpers (hash, noise…) placed before the lesson code. */
   helpers?: string[];
+  /** Code placed after the lesson code. Defaults to the main() that draws `color(uv)`. */
+  footer?: string;
 }
 
 /** Which part of the assembled shader an error comes from. */
@@ -53,12 +55,15 @@ export interface ShaderError {
   message: string;
 }
 
-export function assemble(code: string, { helpers = [] }: AssembleOptions = {}): AssembledShader {
+export function assemble(
+  code: string,
+  { helpers = [], footer = FOOTER }: AssembleOptions = {},
+): AssembledShader {
   const helperText = helpers.length > 0 ? helpers.join('\n') + '\n' : '';
   const helpersFirst = lineCount(HEADER) + 1;
   const helpersCount = lineCount(helperText);
   return {
-    source: HEADER + helperText + code + '\n' + FOOTER,
+    source: HEADER + helperText + code + '\n' + footer,
     helpers: { first: helpersFirst, count: helpersCount },
     code: { first: helpersFirst + helpersCount, count: lineCount(code + '\n') },
   };

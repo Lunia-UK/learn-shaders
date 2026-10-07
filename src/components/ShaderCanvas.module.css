@@ -32,6 +32,8 @@
 
 .playButton {
   position: absolute;
+  /* Above tool overlays such as the pixel probe. */
+  z-index: 1;
   right: 0.5rem;
   bottom: 0.5rem;
   padding: 0.25rem 0.75rem;

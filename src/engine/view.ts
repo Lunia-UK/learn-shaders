@@ -5,9 +5,13 @@
 import { assemble, parseCompileLog, UNIFORMS } from './assemble';
 import { explainErrors, type ExplainedError } from './explain';
 import { Renderer, type ShaderProgram } from './gl';
+import { PixelProbe, type ProbeReading } from './probe';
 
 /** Above 2, extra pixels cost a lot of GPU time for a difference few people can see. */
 export const MAX_PIXEL_RATIO = 2;
+
+/** While a shader animates, the probe values refresh this often (5 times per second). */
+const PROBE_INTERVAL_MS = 200;
 
 export interface ShaderViewOptions {
   /** Shared GLSL helpers placed before the code. */
@@ -36,6 +40,8 @@ export interface ShaderViewState {
   /** True when the code on screen uses `time`. */
   readonly animated: boolean;
   readonly playing: boolean;
+  /** Values at the probed pixel, or null when the probe is off or cannot read this code. */
+  readonly probe: ProbeReading | null;
 }
 
 export class ShaderView {
@@ -55,6 +61,9 @@ export class ShaderView {
   private lastTick: number | null = null;
   private frameRequest = 0;
   private readonly resizeObserver: ResizeObserver;
+  private probe: PixelProbe | null = null;
+  private probeUV: [number, number] | null = null;
+  private lastProbeTime = 0;
 
   /** Returns null when the browser has no WebGL2. */
   static create(canvas: HTMLCanvasElement, options: ShaderViewOptions = {}): ShaderView | null {
@@ -70,6 +79,7 @@ export class ShaderView {
       errors: [],
       animated: false,
       playing: options.playing ?? !prefersReducedMotion(),
+      probe: null,
     };
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -109,6 +119,10 @@ export class ShaderView {
     this.lastValid = { code, helpers };
     // The compiler drops uniforms the code never reads, so this tells whether it uses time.
     this.setState({ errors: [], animated: result.program.uniforms.has(UNIFORMS.time) });
+    if (this.probe) {
+      this.probe.setCode(code, helpers);
+      this.readProbe();
+    }
     this.requestFrame();
     return [];
   }
@@ -117,6 +131,22 @@ export class ShaderView {
     this.setState({ playing });
     this.lastTick = null;
     this.requestFrame();
+  }
+
+  /** Probes the pixel at `uv` (0 to 1 on each axis), or turns the probe off with null. */
+  setProbe(uv: [number, number] | null): void {
+    this.probeUV = uv;
+    if (!uv) {
+      this.probe?.dispose();
+      this.probe = null;
+      this.setState({ probe: null });
+      return;
+    }
+    if (!this.probe) {
+      this.probe = new PixelProbe(this.renderer);
+      if (this.lastValid) this.probe.setCode(this.lastValid.code, this.lastValid.helpers);
+    }
+    this.readProbe();
   }
 
   /** Draws the current frame and returns its pixels (RGBA, bottom row first). */
@@ -132,6 +162,8 @@ export class ShaderView {
     this.canvas.removeEventListener('webglcontextrestored', this.onContextRestored);
     if (this.program) this.renderer.free(this.program);
     this.program = null;
+    this.probe?.dispose();
+    this.probe = null;
     this.listeners.clear();
     this.renderer.dispose();
   }
@@ -154,8 +186,20 @@ export class ShaderView {
     if (this.running && this.lastTick !== null) this.time += (now - this.lastTick) / 1000;
     this.lastTick = this.running ? now : null;
     this.draw();
+    if (this.running && now - this.lastProbeTime >= PROBE_INTERVAL_MS) this.readProbe();
     if (this.running) this.requestFrame();
   };
+
+  private readProbe(): void {
+    if (!this.probe || !this.probeUV) return;
+    const reading = this.probe.read(
+      this.probeUV,
+      [this.canvas.width, this.canvas.height],
+      this.time,
+    );
+    this.lastProbeTime = performance.now();
+    this.setState({ probe: reading });
+  }
 
   private draw(): void {
     if (!this.program) return;
@@ -179,6 +223,8 @@ export class ShaderView {
     this.canvas.width = width;
     this.canvas.height = height;
     this.draw();
+    // Code that uses the resolution may now give other values.
+    this.readProbe();
   }
 
   // The browser may take the GPU context away (driver reset, too many contexts).
@@ -188,12 +234,14 @@ export class ShaderView {
     cancelAnimationFrame(this.frameRequest);
     this.frameRequest = 0;
     this.program = null;
+    this.probe = null;
   };
 
   private onContextRestored = (): void => {
     const renderer = Renderer.create(this.canvas);
     if (!renderer) return;
     this.renderer = renderer;
+    if (this.probeUV) this.probe = new PixelProbe(renderer);
     if (this.lastValid) this.setCode(this.lastValid.code, this.lastValid.helpers);
   };
 }

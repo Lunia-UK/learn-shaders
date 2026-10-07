@@ -37,7 +37,7 @@ Goal: one complete lesson runs from plain files, with all engine features workin
   CodeMirror 6 with GLSL highlighting. Extension: float literals become scrubbable (drag horizontally, Shift for fine steps, arrow keys when focused). Lesson config decides which numbers are scrubbable (all, or only in named declarations) and whether the rest is read-only.
   *Done when:* matches prototype behavior; scrubbing does not rebuild the editor on every frame; keyboard works; unit tests cover literal detection.
 
-- [ ] **0.7 Pixel probe (`src/engine/probe.ts` + ProbeOverlay).**
+- [x] **0.7 Pixel probe (`src/engine/probe.ts` + ProbeOverlay).**
   Port the prototype technique: transform the source so each top-level declaration can be returned as a float, render a 1×1 pass, read back exact float bits. Show values inline at the end of each code line; vec3 values get a color swatch. Click or drag on the canvas moves the probe.
   *Done when:* values shown match the CPU-computed expectation for a gradient shader (unit test on the transform, e2e test on values); refreshes ~5 times per second for animated shaders.
 

@@ -2,6 +2,8 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { Annotation, Compartment, EditorState, type Extension } from '@codemirror/state';
 import { EditorView, keymap, lineNumbers } from '@codemirror/view';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { LineAnnotation } from '../engine/probe';
+import { lineAnnotations, setAnnotations } from '../editor/annotations';
 import { glsl } from '../editor/glsl';
 import { scrubNumbers } from '../editor/scrub';
 import { editorTheme } from '../editor/theme';
@@ -17,7 +19,11 @@ export interface CodeViewProps {
   readOnly?: boolean;
   /** Accessible name of the code area. */
   label?: string;
+  /** Values to show at the end of lines, such as pixel probe readings. */
+  annotations?: LineAnnotation[];
 }
+
+const NO_ANNOTATIONS: LineAnnotation[] = [];
 
 /** Marks changes that come from the `code` prop, so they are not reported back through onChange. */
 const fromProps = Annotation.define<boolean>();
@@ -44,6 +50,7 @@ export function CodeView({
   scrub = 'all',
   readOnly = false,
   label = 'Shader code',
+  annotations = NO_ANNOTATIONS,
 }: CodeViewProps) {
   const [view, setView] = useState<EditorView | null>(null);
   // Props as they were when the editor was created; later changes are applied by the effects below.
@@ -67,6 +74,7 @@ export function CodeView({
           keymap.of([...defaultKeymap, ...historyKeymap]),
           glsl,
           editorTheme,
+          lineAnnotations,
           editableConfig.of(editableExtensions(readOnly)),
           scrubConfig.of(scrubExtensions(scrub, readOnly)),
           labelConfig.of(labelExtensions(label)),
@@ -105,6 +113,10 @@ export function CodeView({
   useLayoutEffect(() => {
     view?.dispatch({ effects: labelConfig.reconfigure(labelExtensions(label)) });
   }, [view, label]);
+
+  useLayoutEffect(() => {
+    view?.dispatch({ effects: setAnnotations.of(annotations) });
+  }, [view, annotations]);
 
   return <div ref={attachEditor} className={styles.codeView} />;
 }

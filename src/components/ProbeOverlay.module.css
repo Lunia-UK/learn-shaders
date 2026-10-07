@@ -1,0 +1,29 @@
+.overlay {
+  position: absolute;
+  inset: 0;
+  cursor: crosshair;
+  /* A tap places the probe; a vertical swipe still scrolls the page on touch screens. */
+  touch-action: pan-y;
+}
+
+.marker {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  background: transparent;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  /* A dark ring around the white one keeps the marker visible on light and dark pixels. */
+  box-shadow:
+    0 0 0 1.5px rgb(0 0 0 / 0.7),
+    inset 0 0 0 1.5px rgb(0 0 0 / 0.7);
+  cursor: grab;
+  touch-action: none;
+}
+
+.marker:focus-visible {
+  outline: 2px solid var(--accent, #c8156a);
+  outline-offset: 3px;
+}
