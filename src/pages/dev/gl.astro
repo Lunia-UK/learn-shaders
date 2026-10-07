@@ -1,5 +1,5 @@
 ---
-// Engine check page: a hardcoded gradient drawn by src/engine/gl.ts.
+// Visual check: a hardcoded gradient drawn by src/engine/gl.ts.
 // Used by tests/e2e/gl.spec.ts. Not linked from the site.
 import { site } from '../../config/site';
 ---
@@ -24,7 +24,7 @@ import { site } from '../../config/site';
 </html>
 
 <script>
-  import * as engineGL from '../../engine/gl';
+  import { Renderer } from '../../engine/gl';
 
   const GRADIENT = `#version 300 es
 precision highp float;
@@ -35,12 +35,9 @@ void main() {
   fragColor = vec4(uv, 0.5, 1.0);
 }`;
 
-  // Lets the e2e tests drive the engine in a real browser.
-  (window as Window & { engineGL?: typeof engineGL }).engineGL = engineGL;
-
   const canvas = document.querySelector<HTMLCanvasElement>('#view')!;
   const status = document.querySelector<HTMLElement>('#status')!;
-  const renderer = engineGL.Renderer.create(canvas);
+  const renderer = Renderer.create(canvas);
 
   if (!renderer) {
     status.textContent = 'WebGL2 is not available in this browser.';

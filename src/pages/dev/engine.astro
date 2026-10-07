@@ -1,0 +1,28 @@
+---
+// Exposes the engine modules on `window.engine` so the e2e tests can drive them
+// in a real browser. Not linked from the site.
+import { site } from '../../config/site';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Engine harness · {site.name}</title>
+  </head>
+  <body>
+    <p id="status" role="status">
+      Loading the engine…
+    </p>
+  </body>
+</html>
+
+<script>
+  import * as gl from '../../engine/gl';
+  import * as assemble from '../../engine/assemble';
+
+  const engine = { gl, assemble };
+  (window as Window & { engine?: typeof engine }).engine = engine;
+  document.querySelector('#status')!.textContent = 'Engine ready on window.engine.';
+</script>

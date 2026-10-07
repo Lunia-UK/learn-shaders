@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const port = 4321;
+// Not 4321, so the tests always run on the build even while `npm run dev` is running.
+const port = 4322;
 
 export default defineConfig({
   testDir: 'tests/e2e',

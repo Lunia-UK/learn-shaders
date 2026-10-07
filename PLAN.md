@@ -21,7 +21,7 @@ Goal: one complete lesson runs from plain files, with all engine features workin
   Create a WebGL2 context, compile and link programs from a fragment source, draw a fullscreen triangle, render to an offscreen FBO, read pixels back. Cache uniform locations. Free programs explicitly.
   *Done when:* a page renders a hardcoded gradient shader; a unit or e2e test reads back a pixel and checks its color.
 
-- [ ] **0.3 Shader assembly (`src/engine/assemble.ts`).**
+- [x] **0.3 Shader assembly (`src/engine/assemble.ts`).**
   Wrap `vec3 color(vec2 uv)` code with header (version, precision, `uRes`, `time`) and `main()`. Optionally prepend shared helpers. Map compiler error line numbers back to the learner's code; turn the raw log into `{ line, message }`.
   *Done when:* unit tests cover a valid shader, an undeclared identifier on line 3 reported as line 3, and helpers prepended without shifting reported lines.
 
