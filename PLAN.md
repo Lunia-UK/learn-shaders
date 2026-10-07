@@ -13,11 +13,11 @@ The behavior to reproduce is demonstrated in `prototypes/`:
 
 Goal: one complete lesson runs from plain files, with all engine features working.
 
-- [ ] **0.1 Scaffold the project.**
+- [x] **0.1 Scaffold the project.**
   Astro + React + TypeScript (strict) + MDX, Vitest, Playwright, ESLint, Prettier. `src/config/site.ts` with the site name. GitHub Actions running lint, unit and e2e tests on each push.
   *Done when:* `npm run dev` shows a placeholder page with the site name from config, and CI is green.
 
-- [ ] **0.2 GL core (`src/engine/gl.ts`).**
+- [x] **0.2 GL core (`src/engine/gl.ts`).**
   Create a WebGL2 context, compile and link programs from a fragment source, draw a fullscreen triangle, render to an offscreen FBO, read pixels back. Cache uniform locations. Free programs explicitly.
   *Done when:* a page renders a hardcoded gradient shader; a unit or e2e test reads back a pixel and checks its color.
 

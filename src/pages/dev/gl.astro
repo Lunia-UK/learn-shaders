@@ -1,0 +1,84 @@
+---
+// Engine check page: a hardcoded gradient drawn by src/engine/gl.ts.
+// Used by tests/e2e/gl.spec.ts. Not linked from the site.
+import { site } from '../../config/site';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>GL check · {site.name}</title>
+  </head>
+  <body>
+    <main>
+      <h1>GL core check</h1>
+      <p>Red grows to the right, green grows upward, blue stays at one half.</p>
+      <canvas id="view" width="256" height="256"></canvas>
+      <p id="status" role="status">
+        Loading…
+      </p>
+    </main>
+  </body>
+</html>
+
+<script>
+  import * as engineGL from '../../engine/gl';
+
+  const GRADIENT = `#version 300 es
+precision highp float;
+uniform vec2 uRes;
+out vec4 fragColor;
+void main() {
+  vec2 uv = gl_FragCoord.xy / uRes;
+  fragColor = vec4(uv, 0.5, 1.0);
+}`;
+
+  // Lets the e2e tests drive the engine in a real browser.
+  (window as Window & { engineGL?: typeof engineGL }).engineGL = engineGL;
+
+  const canvas = document.querySelector<HTMLCanvasElement>('#view')!;
+  const status = document.querySelector<HTMLElement>('#status')!;
+  const renderer = engineGL.Renderer.create(canvas);
+
+  if (!renderer) {
+    status.textContent = 'WebGL2 is not available in this browser.';
+  } else {
+    const result = renderer.compile(GRADIENT);
+    if (!result.ok) {
+      status.textContent = `Shader error: ${result.log}`;
+    } else {
+      renderer.draw(result.program, { uniforms: { uRes: [canvas.width, canvas.height] } });
+      // Read right after drawing: the browser clears the canvas once it is on screen.
+      const x = canvas.width / 2;
+      const y = canvas.height / 2;
+      const pixel = Array.from(renderer.readPixels({ x, y, width: 1, height: 1 }));
+      canvas.dataset.centerPixel = pixel.join(',');
+      status.textContent = `Pixel at (${x}, ${y}): rgba(${pixel.join(', ')})`;
+    }
+  }
+</script>
+
+<style>
+  :root {
+    color-scheme: light dark;
+  }
+
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+  }
+
+  main {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+
+  canvas {
+    display: block;
+    width: 256px;
+    height: 256px;
+  }
+</style>
