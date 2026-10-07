@@ -61,7 +61,7 @@ Goal: one complete lesson runs from plain files, with all engine features workin
 
 Goal: chapter 1 is complete and validated with real beginners.
 
-- [ ] **1.1 Lessons 1.1 to 1.5** (one color, every pixel knows its place, mixing two colors, distance and circle, color points). Port from the prototype, then rewrite the text following the content rules in `CLAUDE.md`. Add a prediction question to each lesson.
+- [x] **1.1 Lessons 1.1 to 1.5** (one color, every pixel knows its place, mixing two colors, distance and circle, color points). Port from the prototype, then rewrite the text following the content rules in `CLAUDE.md`. Add a prediction question to each lesson.
 - [ ] **1.2 Writable line mode.** A lesson can mark one line as writable while the rest stays read-only (prototype noise lesson). Free-edit toggle unlocks everything.
 - [ ] **1.3 Prediction questions.** Component: question + 2 or 3 choices, shown before the learner can scrub; reveals the result after a choice.
 - [ ] **1.4 DeepDive component.** Collapsible "Under the hood" block, inline in the MDX, with a "always expand explanations" preference saved locally. Can embed small demo canvases.

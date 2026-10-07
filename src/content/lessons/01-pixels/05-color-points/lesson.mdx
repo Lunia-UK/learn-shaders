@@ -1,0 +1,51 @@
+---
+title: Color points
+idea: Each pixel takes the colors of a few points, more of the near ones and less of the far ones.
+prerequisites: [mix, distance]
+estimatedMinutes: 5
+
+starter: ./starter.glsl
+solution: ./solution.glsl
+
+editor:
+  scrub: all
+  readOnly: true
+
+tools: [probe, handles]
+handles: [p1, p2]
+
+prediction:
+  question: 'If you raise both 4.00 numbers, how does the blend between the two colors change?'
+  choices: [It gets sharper, It gets softer, It does not change]
+  answer: 0
+
+hint: 'The pink point is at the top left, the blue one at the bottom right. The blend of the target is sharper: raise both 4.00 numbers.'
+success: 'Solved! You just wrote the heart of a soft gradient generator.'
+
+simplifications:
+  - claim: Each point's weight shrinks as you move away from it.
+    reality: 'Here the weight falls off along an exponential curve. Other choices, such as one over the distance, give other looks; this family of methods is called inverse distance weighting.'
+    # TODO verify: lesson id not decided yet (chapter 7, the mesh gradient project).
+    completedIn: 07-warping/06-mesh-gradient
+  - claim: This is how animated gradient backgrounds are made.
+    reality: 'Many are made this way, with moving points. Design tools often use other methods, such as a grid of colored points blended with smooth patches.'
+    # TODO verify: check the claim against a few real gradient generators before publishing.
+    completedIn: 07-warping/06-mesh-gradient
+
+sources:
+  - title: 'Shepard, D. (1968). A two-dimensional interpolation function for irregularly-spaced data. Proceedings of the 1968 ACM National Conference.'
+    url: https://dl.acm.org/doi/10.1145/800186.810616
+  - title: The Book of Shaders, Colors (blending colors)
+    url: https://thebookofshaders.com/06/
+---
+
+Each point has a color and a weight, `w1` and `w2`.
+The weight is big near the point and gets smaller as you move away from it.
+
+The last line averages the two colors, giving more room to the one with the bigger weight.
+So each pixel looks mostly like its nearest point, and blends where the points meet.
+
+{/* TODO verify: "many animated gradient backgrounds work like this" (see simplifications). */}
+Many soft, animated gradient backgrounds on the web work along these lines.
+
+**Your turn:** place the two points like in the target, then set how sharp the blend is.

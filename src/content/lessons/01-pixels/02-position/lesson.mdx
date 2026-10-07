@@ -1,0 +1,48 @@
+---
+title: Every pixel knows its place
+idea: Each pixel receives its own position, uv, and can use it to choose its color.
+prerequisites: [color]
+estimatedMinutes: 3
+
+starter: ./starter.glsl
+solution: ./solution.glsl
+
+editor:
+  scrub: all
+  readOnly: true
+
+tools: [probe]
+
+prediction:
+  question: 'Red is set to uv.x. Where is the image the most red?'
+  choices: [On the left, On the right, At the top]
+  answer: 1
+
+hint: 'Red grows to the right, a little green rises toward the top, and there is some blue everywhere.'
+success: 'Solved! Every pixel worked out its color from its own position.'
+
+simplifications:
+  - claim: uv goes from exactly 0 to exactly 1.
+    reality: uv is measured at the center of each pixel, so on a 100-pixel-wide image it goes from 0.005 to 0.995.
+    # TODO verify: lesson id not decided yet (the lesson that opens the wrapper and gl_FragCoord).
+    completedIn: 08-gpu/03-fragment-coordinates
+  - claim: The function receives uv.
+    reality: The page computes uv from the pixel's coordinates and the size of the image, then calls the function with it. A later lesson opens that wrapper.
+    # TODO verify: lesson id not decided yet.
+    completedIn: 08-gpu/03-fragment-coordinates
+
+sources:
+  - title: The Book of Shaders, Uniforms (gl_FragCoord and the resolution)
+    url: https://thebookofshaders.com/03/
+  - title: The Book of Shaders, Hello World
+    url: https://thebookofshaders.com/02/
+---
+
+The function receives `uv`, the position of the pixel on the image.
+`uv.x` goes from 0 on the left to 1 on the right.
+`uv.y` goes from 0 at the bottom to 1 at the top.
+
+Click in a few places on the image. This time the values in the code change.
+Every pixel runs the same code, but with its own position.
+
+**Your turn:** set the three numbers so your image matches the target.

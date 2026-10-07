@@ -1,0 +1,49 @@
+---
+title: Mixing two colors
+idea: mix(a, b, t) blends two colors, and a position as t turns the blend into a gradient.
+prerequisites: [uv]
+estimatedMinutes: 4
+
+starter: ./starter.glsl
+solution: ./solution.glsl
+
+editor:
+  scrub: [a, b]
+  # The line "float t = uv.x;": the first line the learner writes.
+  writableLine: 4
+  readOnly: true
+
+tools: [probe]
+
+prediction:
+  question: 'Here t is uv.x. What color is the left edge of the image?'
+  choices: [Color a, Color b, Half of each]
+  answer: 0
+
+hint: 'Replace uv.x with uv.y on line 4, then adjust color b.'
+success: 'Solved! You wrote your first line of shader code.'
+
+simplifications:
+  - claim: Halfway between two colors is the color in the middle.
+    reality: 'The numbers are halfway, but screens do not show brightness in a straight line, so the eye may not see the middle color. Blending in a "linear" color space fixes this.'
+    # TODO verify: lesson id not decided yet (chapter 5, color).
+    completedIn: 05-color/03-gamma
+  - claim: mix only blends colors.
+    reality: mix works on any numbers or vectors of the same size, such as positions.
+    # TODO verify: lesson id not decided yet (chapter 3, motion).
+    completedIn: 03-motion/02-moving-between-points
+
+sources:
+  - title: The Book of Shaders, Colors (mix)
+    url: https://thebookofshaders.com/06/
+  - title: The OpenGL ES Shading Language 3.00, section 8.3, Common Functions (mix)
+    url: https://registry.khronos.org/OpenGL/specs/es/3.0/GLSL_ES_Specification_3.00.pdf
+---
+
+`mix(a, b, t)` blends two colors.
+When `t` is 0 you get `a`. When `t` is 1 you get `b`. In between, you get a blend of both.
+
+Here `t` is `uv.x`, so the blend goes from left to right: a gradient.
+
+**Your turn:** the target fades from the bottom to the top, toward another purple.
+To change the direction, write line 4 yourself. Then adjust color `b`.

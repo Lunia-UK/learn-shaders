@@ -1,0 +1,50 @@
+---
+title: Draw a circle
+idea: The distance from a center point, turned into white and black, draws a circle.
+prerequisites: [uv]
+estimatedMinutes: 4
+
+starter: ./starter.glsl
+solution: ./solution.glsl
+
+editor:
+  scrub: all
+  readOnly: true
+
+tools: [probe, handles]
+handles: [center]
+
+prediction:
+  question: 'If you raise the first smoothstep number, from 0.20 toward 0.22, does the circle grow or shrink?'
+  choices: [It grows, It shrinks, Nothing changes]
+  answer: 0
+
+hint: 'The circle of the target is bigger and much blurrier: move the two smoothstep numbers apart.'
+success: 'Solved! A circle, with no drawing function at all: just a distance.'
+
+simplifications:
+  - claim: The circle is round.
+    reality: uv goes from 0 to 1 on both sides, so on an image wider than it is tall, the same code draws an oval. This image is square.
+    # TODO verify: lesson id not decided yet (chapter 2, shapes).
+    completedIn: 02-shapes/02-aspect-ratio
+  - claim: smoothstep makes a smooth step between its two numbers.
+    reality: It follows an S-shaped curve, slow at both ends and faster in the middle, not a straight ramp.
+    # TODO verify: lesson id not decided yet (chapter 2, shapes, or 3, motion).
+    completedIn: 02-shapes/01-shaping-functions
+
+sources:
+  - title: The Book of Shaders, Shapes (circles from distance)
+    url: https://thebookofshaders.com/07/
+  - title: The Book of Shaders, Shaping functions (smoothstep)
+    url: https://thebookofshaders.com/05/
+  - title: The OpenGL ES Shading Language 3.00, section 8.3 and 8.4 (smoothstep, distance)
+    url: https://registry.khronos.org/OpenGL/specs/es/3.0/GLSL_ES_Specification_3.00.pdf
+---
+
+`distance(uv, center)` measures how far each pixel is from the center.
+
+`smoothstep` turns that distance into a soft change: 1 (white) near the center, 0 (black) further out.
+Its first two numbers say where the edge starts and where it ends.
+The further apart they are, the blurrier the edge.
+
+**Your turn:** drag the center on the image, then set the size and the blur of the edge.
