@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.astro/
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+
+# Environment and OS files
+.env
+.env.*
+.DS_Store
+Thumbs.db

@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atelier Shader : adoucir les cases</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #EEF0F5; --panel: #FFFFFF; --ink: #1B1F3B; --muted: #585E82; --line: #D3D7E4;
+  --num: #C8156A; --num-bg: rgba(200, 21, 106, .08); --kw: #3446A8; --fn: #00747F; --cm: #8A90AE; --input: #A35300;
+  --ok: #1B8157; --err: #C62828; --code-bg: #F7F8FB;
+  --deep: #0B7A75; --deep-bg: rgba(11, 122, 117, .07);
+  --real: #A85A00; --real-bg: #FFF6EA;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #14162A; --panel: #1C1F37; --ink: #E6E8F5; --muted: #A3A8CA; --line: #2F3356;
+    --num: #FF6AB0; --num-bg: rgba(255, 106, 176, .12); --kw: #A3ACFF; --fn: #4DD0E1; --cm: #6E7398; --input: #FFB74D;
+    --ok: #4CC38A; --err: #FF7B7B; --code-bg: #171A30;
+    --deep: #4FD1C5; --deep-bg: rgba(79, 209, 197, .07);
+    --real: #FFB74D; --real-bg: #231F2A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #14162A; --panel: #1C1F37; --ink: #E6E8F5; --muted: #A3A8CA; --line: #2F3356;
+  --num: #FF6AB0; --num-bg: rgba(255, 106, 176, .12); --kw: #A3ACFF; --fn: #4DD0E1; --cm: #6E7398; --input: #FFB74D;
+  --ok: #4CC38A; --err: #FF7B7B; --code-bg: #171A30;
+  --deep: #4FD1C5; --deep-bg: rgba(79, 209, 197, .07);
+  --real: #FFB74D; --real-bg: #231F2A;
+  color-scheme: dark;
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+}
+:focus-visible { outline: 2px solid var(--num); outline-offset: 2px; }
+code, pre, .mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.app { max-width: 1240px; margin: 0 auto; padding: 20px clamp(16px, 3vw, 36px) 56px; }
+.top {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+  gap: 16px 32px; padding-bottom: 20px; border-bottom: 1px solid var(--line); margin-bottom: 28px;
+}
+h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: -.03em; line-height: 1; margin: 0; }
+.chapter { margin: .45rem 0 0; color: var(--muted); }
+.top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.steps { list-style: none; display: flex; gap: 6px; margin: 0; padding: 0; flex-wrap: wrap; }
+.step {
+  width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel);
+  color: var(--muted); font-family: inherit; font-weight: 600; font-size: 15px; display: grid; place-items: center;
+}
+.step[aria-current="step"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.step.later { opacity: .45; }
+.pref { display: flex; align-items: center; gap: 8px; font-size: .92rem; color: var(--muted); cursor: pointer; }
+.pref input { accent-color: var(--deep); width: 16px; height: 16px; }
+
+.grid {
+  display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+  grid-template-areas: "lesson stage" "real real"; gap: 40px 44px; align-items: start;
+}
+.lesson { grid-area: lesson; min-width: 0; }
+.stage { grid-area: stage; position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); }
+.real { grid-area: real; }
+@media (max-width: 900px) {
+  .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "lesson" "stage" "real"; }
+  .stage { position: static; }
+}
+
+h2 { font-size: 1.75rem; font-weight: 800; letter-spacing: -.02em; margin: 0 0 .7rem; line-height: 1.15; }
+.prose p { margin: 0 0 .85rem; max-width: 62ch; }
+.prose code, .goal code, .deep code, .real code, .probe-text code {
+  font-size: .86em; background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 .3em;
+}
+.goal {
+  max-width: 62ch; margin: 1rem 0; padding: .7rem 1rem; border-left: 3px solid var(--num);
+  background: var(--panel); border-radius: 0 8px 8px 0; font-weight: 600;
+}
+
+/* Couche « Sous le capot » */
+.deep { margin: .2rem 0 1.1rem; max-width: 62ch; border-left: 3px solid var(--deep); background: var(--deep-bg); border-radius: 0 10px 10px 0; }
+.deep > summary {
+  list-style: none; cursor: pointer; padding: .6rem .9rem; display: flex; align-items: center; gap: .6rem; font-weight: 600;
+}
+.deep > summary::-webkit-details-marker { display: none; }
+.deep > summary .ico { flex: 0 0 auto; color: var(--deep); transition: transform .15s; }
+.deep[open] > summary .ico { transform: rotate(90deg); }
+.deep > summary .tag { margin-left: auto; font-weight: 400; font-size: .82rem; color: var(--deep); white-space: nowrap; }
+.deep .body { padding: 0 1rem 1rem; }
+.deep .body p { margin: 0 0 .8rem; }
+.deep pre {
+  margin: 0 0 .9rem; padding: .7rem .9rem; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+  font-size: 13px; line-height: 1.6; overflow-x: auto;
+}
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 0 .9rem; }
+.pair figure { margin: 0; }
+.pair canvas, .solo canvas { display: block; width: 100%; aspect-ratio: 1; border-radius: 8px; background: #000; }
+.pair figcaption, .solo figcaption { font-size: .85rem; color: var(--muted); margin-top: .35rem; line-height: 1.4; }
+.hashlab { display: grid; grid-template-columns: auto 1fr; gap: .25rem 1rem; align-items: baseline; margin: 0 0 .9rem; font-size: .9rem; }
+.hashlab dt { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12.5px; color: var(--muted); }
+.hashlab dd { margin: 0; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 13px; font-variant-numeric: tabular-nums; }
+.hashlab dd.res { color: var(--deep); font-weight: 600; }
+.stepper { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 .7rem; font-size: .92rem; }
+.stepper button { width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-family: inherit; font-weight: 600; font-size: 16px; line-height: 1; cursor: pointer; }
+.stepper output { font-family: "JetBrains Mono", ui-monospace, monospace; min-width: 2ch; text-align: center; font-weight: 600; }
+.smooth-lab { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 12px; align-items: start; margin-bottom: .9rem; }
+.smooth-lab .plot { display: block; width: 100%; height: 150px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.range { display: flex; align-items: center; gap: 10px; font-size: .92rem; margin: 0 0 .5rem; }
+.range input { flex: 1; accent-color: var(--deep); }
+.range output { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 13px; min-width: 3.5ch; }
+
+.btn {
+  font-family: inherit; font-size: .95rem; font-weight: 600; padding: .55rem 1rem; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+
+/* Code */
+.code-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 1.4rem 0 .6rem; }
+h3 { font-size: 1.1rem; margin: 0; font-weight: 800; }
+.code {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; line-height: 1.75;
+  background: var(--code-bg); color: var(--ink); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px 0; overflow-x: auto; counter-reset: ln;
+}
+.line { white-space: pre; padding-right: 16px; min-height: 1.75em; counter-increment: ln; }
+.line::before {
+  content: counter(ln); display: inline-block; width: 2.4em; margin-right: 1em; text-align: right; color: var(--cm); user-select: none;
+}
+.line.fold, .line.ro { counter-increment: none; }
+.line.fold::before, .line.ro::before { content: ""; }
+.line.fold { cursor: pointer; color: var(--muted); }
+.line.fold:hover .foldtxt { text-decoration: underline; }
+.line.ro { color: var(--cm); }
+.line.err-line { background: rgba(198, 40, 40, .12); }
+.editor { display: block; width: 100%; padding: 14px 16px; resize: vertical; tab-size: 2; white-space: pre; }
+.kw { color: var(--kw); font-weight: 600; }
+.fn { color: var(--fn); }
+.in { color: var(--input); font-weight: 600; }
+.cm { color: var(--cm); font-style: italic; }
+.lit { color: var(--muted); }
+.num {
+  color: var(--num); background: var(--num-bg); border-bottom: 1.5px dashed currentColor;
+  border-radius: 3px 3px 0 0; cursor: ew-resize; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.num:hover, .num.active { background: var(--num); color: var(--panel); }
+body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: none; }
+.wl {
+  font: inherit; color: var(--ink); background: var(--panel); border: 1.5px dashed var(--num); border-radius: 5px;
+  padding: 0 6px; margin-left: -7px; min-width: 22ch;
+}
+.wl:focus { outline: none; border-style: solid; box-shadow: 0 0 0 3px var(--num-bg); }
+.todo { margin-left: 1em; color: var(--num); font-size: 12px; font-style: italic; }
+.ann {
+  margin-left: 2em; padding: 2px 9px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line);
+  color: var(--muted); font-size: 12px; white-space: nowrap;
+}
+.ann:empty { display: none; }
+.sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; box-shadow: inset 0 0 0 1px rgba(128,128,128,.55); }
+.error { color: var(--err); font-size: 13px; margin: .7rem 0 0; font-family: "JetBrains Mono", ui-monospace, monospace; white-space: pre-wrap; }
+.help { color: var(--muted); font-size: .9rem; margin: .7rem 0 0; }
+
+/* Scène */
+.viewport { position: relative; width: 100%; max-width: 520px; aspect-ratio: 1; }
+#view { display: block; width: 100%; height: 100%; border-radius: 14px; background: #000; }
+#grid { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; border-radius: 14px; }
+.overlay { position: absolute; inset: 0; touch-action: none; cursor: crosshair; border-radius: 14px; }
+.probe-mark {
+  position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
+  border: 2px solid #fff; box-shadow: 0 0 0 1.5px rgba(0,0,0,.6), inset 0 0 0 1.5px rgba(0,0,0,.6); pointer-events: none;
+}
+.stage-tools { display: flex; gap: 8px; margin: .8rem 0 0; flex-wrap: wrap; }
+.probe-text { color: var(--muted); font-size: .92rem; margin: .7rem 0 1.2rem; max-width: 520px; }
+.target-panel { display: flex; gap: 18px; align-items: flex-start; max-width: 520px; }
+.target { margin: 0; flex: 0 0 112px; }
+#target { display: block; width: 112px; height: 112px; border-radius: 10px; background: #000; }
+.target figcaption { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.meter-wrap { flex: 1; min-width: 0; }
+.meter-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: .92rem; color: var(--muted); }
+.meter-head strong { color: var(--ink); font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.meter { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; margin: .4rem 0 1rem; }
+.meter-fill { height: 100%; width: 0; background: var(--num); transition: width .2s ease, background-color .2s; }
+.meter-fill.done { background: var(--ok); }
+.win { border-left: 3px solid var(--ok); padding: .15rem 0 .15rem .9rem; }
+.win p { margin: 0 0 .4rem; }
+.win p:first-child { font-weight: 600; }
+
+/* Couche « Dans la vraie vie » */
+.real { background: var(--real-bg); border: 1px solid var(--line); border-top: 4px solid var(--real); border-radius: 14px; padding: clamp(18px, 3vw, 32px); }
+.real-head { display: flex; align-items: center; gap: .7rem; margin-bottom: .5rem; }
+.real-head svg { color: var(--real); flex: 0 0 auto; }
+.real h2 { margin: 0; }
+.real-intro { max-width: 70ch; margin: 0 0 1.4rem; }
+.real-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 900px) { .real-grid { grid-template-columns: minmax(0, 1fr); } }
+.hero { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 16 / 10; background: #10123a; }
+.hero canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hero-copy { position: absolute; left: 7%; bottom: 10%; right: 7%; color: #fff; text-shadow: 0 1px 12px rgba(0,0,0,.25); }
+.hero-copy strong { display: block; font-size: clamp(1.3rem, 2.6vw, 2rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+.hero-copy span { display: block; margin-top: .35rem; opacity: .9; font-size: .95rem; }
+.real-tools { display: flex; gap: 8px; flex-wrap: wrap; margin: .8rem 0 1rem; }
+.real-uses p { margin: 0 0 .8rem; max-width: 62ch; }
+.real-uses .perf { color: var(--muted); font-size: .92rem; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin-bottom: 0; }
+.tab {
+  font-family: inherit; font-weight: 600; font-size: .9rem; padding: .5rem .8rem; border: 0; background: none; color: var(--muted);
+  border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer;
+}
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--real); }
+.snippet-wrap { position: relative; }
+.snippet {
+  margin: 0; padding: 14px 16px; background: var(--code-bg); border: 1px solid var(--line); border-top: 0;
+  border-radius: 0 0 10px 10px; font-size: 12.5px; line-height: 1.6; overflow: auto; max-height: 360px; white-space: pre;
+}
+.copy { position: absolute; top: 8px; right: 8px; padding: .35rem .7rem; font-size: .85rem; }
+.fallback { max-width: 60ch; padding: 1rem 1.2rem; border-left: 3px solid var(--err); background: var(--panel); }
+@media (prefers-reduced-motion: reduce) { .meter-fill, .deep > summary .ico { transition: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div>
+      <h1>Atelier Shader</h1>
+      <p class="chapter">Chapitre 6 : le hasard</p>
+    </div>
+    <div class="top-right">
+      <ol class="steps" aria-label="Leçons du chapitre">
+        <li><span class="step later" title="Le hasard par pixel (pas encore dans ce prototype)">1</span></li>
+        <li><span class="step later" title="Le hasard par case (pas encore dans ce prototype)">2</span></li>
+        <li><span class="step" aria-current="step" title="Adoucir les cases">3</span></li>
+        <li><span class="step later" title="Empiler des couches (pas encore dans ce prototype)">4</span></li>
+        <li><span class="step later" title="Déformer avec le noise (pas encore dans ce prototype)">5</span></li>
+      </ol>
+      <label class="pref"><input type="checkbox" id="pref-open"> Toujours déplier les explications</label>
+    </div>
+  </header>
+
+  <main class="grid" id="main">
+    <section class="lesson">
+      <h2>Adoucir les cases</h2>
+      <div class="prose">
+        <p>Dans la leçon précédente, chaque case de la grille tirait un nombre au hasard, et on obtenait une mosaïque. Pour transformer cette mosaïque en nuage, chaque pixel va regarder les quatre coins de sa case et mélanger leurs valeurs selon sa position dans la case.</p>
+        <p>La fonction <code>hasard</code> est fournie. Pour l’instant, vois-la comme une boîte qui donne toujours le même nombre pour une case donnée.</p>
+      </div>
+
+      <details class="deep" data-demo="hash">
+        <summary>
+          <svg class="ico" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M4 2l6 5-6 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Comment fonctionne <code>hasard</code> ?
+          <span class="tag">Sous le capot</span>
+        </summary>
+        <div class="body">
+          <p>Voici l’intérieur de la boîte :</p>
+<pre>float hasard(vec2 c) {
+  return fract(sin(dot(c, vec2(127.1, 311.7))) * 43758.5453);
+}</pre>
+          <p>Ce n’est pas du vrai hasard. <code>dot</code> transforme la case en un seul nombre, <code>sin</code> le fait osciller, la multiplication par un très grand nombre amplifie la moindre différence, et <code>fract</code> ne garde que les chiffres après la virgule. Change de case d’un cran et regarde le résultat sauter :</p>
+          <div class="stepper" aria-label="Case à calculer">
+            <span>Case</span>
+            <span>x</span><button type="button" data-hx="-1" aria-label="x moins un">−</button><output id="hx">3</output><button type="button" data-hx="1" aria-label="x plus un">+</button>
+            <span>y</span><button type="button" data-hy="-1" aria-label="y moins un">−</button><output id="hy">2</output><button type="button" data-hy="1" aria-label="y plus un">+</button>
+          </div>
+          <dl class="hashlab" id="hashlab"></dl>
+          <p>Le point essentiel, c’est que le résultat est toujours le même pour une même case. Et c’est indispensable : les pixels ne peuvent pas se parler. Deux pixels voisins doivent donc recalculer chacun de leur côté exactement les mêmes valeurs de coins, sinon leurs couleurs ne se raccordent pas.</p>
+          <div class="pair">
+            <figure><canvas id="demo-same" aria-label="Noise où chaque pixel recalcule les mêmes coins"></canvas><figcaption>Chaque pixel recalcule les mêmes coins : le nuage est continu.</figcaption></figure>
+            <figure><canvas id="demo-chaos" aria-label="Noise où chaque pixel tire ses propres coins"></canvas><figcaption>Chaque pixel tire ses propres coins, comme avec un vrai hasard : plus rien ne se raccorde.</figcaption></figure>
+          </div>
+          <p>C’est pour ça qu’un shader n’a pas de <code>Math.random()</code> : un hasard différent à chaque appel casserait tout.</p>
+        </div>
+      </details>
+
+      <div class="prose">
+        <p>Active la grille et clique dans une case : l’image montre ses quatre coins et leurs valeurs. <code>bas</code> mélange les deux coins du bas selon <code>f.x</code>, la position horizontale du pixel dans sa case. <code>haut</code> fait pareil avec les deux coins du haut.</p>
+      </div>
+      <p class="goal">Écris la dernière ligne pour mélanger <code>bas</code> et <code>haut</code> selon <code>f.y</code>, puis règle <code>taille</code> pour retrouver la cible.</p>
+
+      <div class="code-head">
+        <h3>Ton code</h3>
+        <button id="btn-edit" class="btn" type="button" aria-pressed="false">Modifier tout le code</button>
+      </div>
+      <div id="code" class="code"></div>
+      <textarea id="editor" class="code editor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Code du shader" hidden></textarea>
+      <p id="error" class="error" role="alert" hidden></p>
+      <p id="code-help" class="help"></p>
+
+      <details class="deep" data-demo="smooth" style="margin-top:1.4rem">
+        <summary>
+          <svg class="ico" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M4 2l6 5-6 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Pourquoi je vois encore des carrés ?
+          <span class="tag">Sous le capot</span>
+        </summary>
+        <div class="body">
+          <p>La courbe ci-dessous montre une ligne de l’image vue de profil. Avec un mélange linéaire, la valeur change de direction d’un coup à chaque bord de case : ces cassures forment des angles, et l’œil les repère tout de suite.</p>
+          <p>La solution : déformer <code>f</code> avec une courbe en S, qui arrive et repart à plat aux bords de chaque case. Les cassures disparaissent.</p>
+          <div class="range"><label for="smooth-k">Lissage</label><input type="range" id="smooth-k" min="0" max="1" step="0.01" value="0"><output id="smooth-out">0.00</output></div>
+          <div class="smooth-lab">
+            <canvas id="plot" class="plot" aria-label="Profil d’une ligne du noise"></canvas>
+            <figure class="solo" style="margin:0"><canvas id="demo-smooth" aria-label="Noise avec le lissage choisi"></canvas></figure>
+          </div>
+<pre>f = f * f * (3.0 - 2.0 * f);  // la courbe en S, ajoutée dans la prochaine leçon</pre>
+        </div>
+      </details>
+
+      <details class="deep" data-demo="perlin">
+        <summary>
+          <svg class="ico" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M4 2l6 5-6 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          C’est ça, le Perlin noise ?
+          <span class="tag">Sous le capot</span>
+        </summary>
+        <div class="body">
+          <p>Presque. Ce que tu viens de construire s’appelle le value noise : chaque coin porte une valeur. Le Perlin noise donne plutôt à chaque coin une direction, et chaque pixel mesure s’il se trouve en avant ou en arrière de cette direction. Les formes deviennent moins alignées sur la grille, plus organiques.</p>
+          <div class="pair">
+            <figure><canvas id="demo-value" aria-label="Value noise lissé"></canvas><figcaption>Value noise lissé : on devine encore la grille.</figcaption></figure>
+            <figure><canvas id="demo-gradient" aria-label="Noise à directions, façon Perlin"></canvas><figcaption>Noise à directions, façon Perlin : plus organique.</figcaption></figure>
+          </div>
+          <p>Tu n’as pas besoin de le réécrire toi-même pour l’instant : comprendre l’idée des coins suffit pour tout ce qui suit.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="stage" aria-label="Rendu">
+      <div class="viewport">
+        <canvas id="view" role="img" aria-label="Rendu de ton shader"></canvas>
+        <canvas id="grid" aria-hidden="true"></canvas>
+        <div id="overlay" class="overlay"><div id="probe" class="probe-mark" aria-hidden="true"></div></div>
+      </div>
+      <div class="stage-tools">
+        <button id="btn-grid" class="btn" type="button" aria-pressed="true">Grille affichée</button>
+      </div>
+      <p id="probe-text" class="probe-text"></p>
+      <div class="target-panel">
+        <figure class="target">
+          <canvas id="target" role="img" aria-label="Image cible à reproduire"></canvas>
+          <figcaption>Cible</figcaption>
+        </figure>
+        <div class="meter-wrap">
+          <div class="meter-head"><span>Ressemblance avec la cible</span><strong id="score">0&#8239;%</strong></div>
+          <div class="meter"><div id="meter-fill" class="meter-fill"></div></div>
+          <div id="win" class="win" hidden role="status">
+            <p>Réussi ! Ta mosaïque est devenue un nuage : c’est du value noise.</p>
+            <p>Tu vois encore des carrés ? C’est normal, la question juste sous ton code explique pourquoi.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="real" aria-labelledby="real-title">
+      <div class="real-head">
+        <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="4" width="22" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 23h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 15c3-5 5 2 8-3s4 1 6-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <h2 id="real-title">Dans la vraie vie</h2>
+      </div>
+      <p class="real-intro">Le noise est partout sur les sites modernes : fonds qui respirent, grain qui adoucit les dégradés, textures qui réagissent au survol. Voici le même noise, lissé et mis en mouvement, en fond d’une section d’accueil.</p>
+      <div class="real-grid">
+        <div>
+          <div class="hero">
+            <canvas id="hero" aria-label="Fond animé construit avec du noise"></canvas>
+            <div class="hero-copy"><strong>Ton site, avec un fond vivant</strong><span>Deux couches de noise, un peu de temps, une pincée de grain.</span></div>
+          </div>
+          <div class="real-tools">
+            <button id="btn-anim" class="btn" type="button" aria-pressed="true">Animation</button>
+            <button id="btn-grain" class="btn" type="button" aria-pressed="true">Grain anti-bandes</button>
+          </div>
+          <div class="real-uses">
+            <p><strong>Le grain anti-bandes.</strong> Sur un dégradé sombre, l’écran n’a pas assez de nuances et on voit des bandes de couleur. Un bruit très léger, différent pour chaque pixel, casse ces bandes. Désactive-le et regarde les zones sombres du fond.</p>
+            <p class="perf">Côté performances : le noise se recalcule pour chaque pixel à chaque image, soit des millions d’appels par seconde. Garde peu de couches, plafonne la résolution à deux fois la densité de l’écran, mets l’animation en pause quand le fond n’est pas visible, et en production préfère une implémentation éprouvée comme le dépôt webgl-noise de Stefan Gustavson et Ashima Arts plutôt que la version pédagogique.</p>
+          </div>
+        </div>
+        <div>
+          <div class="tabs" role="tablist" aria-label="Code à copier">
+            <button class="tab" role="tab" aria-selected="true" data-snip="snip-glsl" type="button">Shader GLSL</button>
+            <button class="tab" role="tab" aria-selected="false" data-snip="snip-js" type="button">JavaScript</button>
+            <button class="tab" role="tab" aria-selected="false" data-snip="snip-three" type="button">Three.js</button>
+            <button class="tab" role="tab" aria-selected="false" data-snip="snip-r3f" type="button">React Three Fiber</button>
+          </div>
+          <div class="snippet-wrap">
+            <pre class="snippet" id="snippet" role="tabpanel" tabindex="0"></pre>
+            <button class="btn copy" id="btn-copy" type="button">Copier</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script type="text/plain" id="snip-glsl">precision highp float;
+uniform vec2 uRes;
+uniform float uTime;
+
+float hasard(vec2 c) {
+  return fract(sin(dot(c, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float noise(vec2 p) {
+  vec2 c = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  float bas  = mix(hasard(c), hasard(c + vec2(1.0, 0.0)), f.x);
+  float haut = mix(hasard(c + vec2(0.0, 1.0)), hasard(c + vec2(1.0, 1.0)), f.x);
+  return mix(bas, haut, f.y);
+}
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / uRes.y;
+  float n1 = noise(uv * 2.5 + vec2(uTime * 0.10, uTime * 0.05));
+  float n2 = noise(uv * 4.0 + vec2(10.0 - uTime * 0.07, uTime * 0.04));
+  vec3 col = mix(vec3(0.08, 0.10, 0.30), vec3(0.93, 0.40, 0.55), n1);
+  col = mix(col, vec3(1.00, 0.78, 0.45), n2 * n2 * 0.8);
+  col += (hasard(gl_FragCoord.xy) - 0.5) * 0.02; // grain anti-bandes
+  gl_FragColor = vec4(col, 1.0);
+}</script>
+
+<script type="text/plain" id="snip-js">// HTML : <canvas id="fond"></canvas>, placé en plein écran derrière ton contenu
+const canvas = document.getElementById('fond');
+const gl = canvas.getContext('webgl');
+const fragment = `...`; // colle ici le shader de l'onglet « Shader GLSL »
+const vertex = 'attribute vec2 p; void main() { gl_Position = vec4(p, 0.0, 1.0); }';
+
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, vertex));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fragment));
+gl.linkProgram(prog);
+gl.useProgram(prog);
+
+// Un seul triangle qui couvre tout l'écran
+gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+const loc = gl.getAttribLocation(prog, 'p');
+gl.enableVertexAttribArray(loc);
+gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+const uRes = gl.getUniformLocation(prog, 'uRes');
+const uTime = gl.getUniformLocation(prog, 'uTime');
+let visible = true;
+new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(canvas);
+
+function frame(t) {
+  requestAnimationFrame(frame);
+  if (!visible) return;
+  const dpr = Math.min(devicePixelRatio, 2);
+  const w = Math.round(canvas.clientWidth * dpr);
+  const h = Math.round(canvas.clientHeight * dpr);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  gl.viewport(0, 0, w, h);
+  gl.uniform2f(uRes, w, h);
+  gl.uniform1f(uTime, t / 1000);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+requestAnimationFrame(frame);</script>
+
+<script type="text/plain" id="snip-three">import * as THREE from 'three';
+
+const fragment = `...`; // colle ici le shader de l'onglet « Shader GLSL »
+
+const renderer = new THREE.WebGLRenderer();
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+addEventListener('resize', () => renderer.setSize(innerWidth, innerHeight));
+
+const scene = new THREE.Scene();
+const camera = new THREE.Camera();
+const material = new THREE.ShaderMaterial({
+  uniforms: { uRes: { value: new THREE.Vector2() }, uTime: { value: 0 } },
+  vertexShader: 'void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }',
+  fragmentShader: fragment,
+});
+const plane = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+plane.frustumCulled = false;
+scene.add(plane);
+
+renderer.setAnimationLoop((t) => {
+  material.uniforms.uTime.value = t / 1000;
+  renderer.getDrawingBufferSize(material.uniforms.uRes.value);
+  renderer.render(scene, camera);
+});</script>
+
+<script type="text/plain" id="snip-r3f">import { Canvas, useFrame } from '@react-three/fiber';
+import { useMemo, useRef } from 'react';
+import { Vector2 } from 'three';
+
+const fragment = `...`; // colle ici le shader de l'onglet « Shader GLSL »
+const vertex = 'void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }';
+
+function Fond() {
+  const material = useRef();
+  const uniforms = useMemo(() => ({ uRes: { value: new Vector2() }, uTime: { value: 0 } }), []);
+  useFrame(({ clock, gl }) => {
+    material.current.uniforms.uTime.value = clock.elapsedTime;
+    gl.getDrawingBufferSize(material.current.uniforms.uRes.value);
+  });
+  return (
+    <mesh frustumCulled={false}>
+      <planeGeometry args={[2, 2]} />
+      <shaderMaterial ref={material} uniforms={uniforms} vertexShader={vertex} fragmentShader={fragment} />
+    </mesh>
+  );
+}
+
+export default function FondAnime() {
+  return (
+    <Canvas dpr={[1, 2]} style={{ position: 'fixed', inset: 0, zIndex: -1 }}>
+      <Fond />
+    </Canvas>
+  );
+}</script>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- Leçon ---------- */
+const LESSON = {
+  scrubVars: ['taille'],
+  code:
+`vec3 couleur(vec2 uv) {
+  float taille = 8.0;
+  vec2 c = floor(uv * taille);
+  vec2 f = fract(uv * taille);
+  float a = hasard(c);
+  float b = hasard(c + vec2(1.0, 0.0));
+  float d = hasard(c + vec2(0.0, 1.0));
+  float e = hasard(c + vec2(1.0, 1.0));
+  float bas = mix(a, b, f.x);
+  float haut = mix(d, e, f.x);
+  return vec3(bas);
+}`,
+  target:
+`vec3 couleur(vec2 uv) {
+  vec2 c = floor(uv * 5.0);
+  vec2 f = fract(uv * 5.0);
+  float bas = mix(hasard(c), hasard(c + vec2(1.0, 0.0)), f.x);
+  float haut = mix(hasard(c + vec2(0.0, 1.0)), hasard(c + vec2(1.0, 1.0)), f.x);
+  return vec3(mix(bas, haut, f.y));
+}`
+};
+
+/* ---------- GLSL ---------- */
+const HASH_SRC = 'float hasard(vec2 c) {\n  return fract(sin(dot(c, vec2(127.1, 311.7))) * 43758.5453);\n}\n';
+const VERT = '#version 300 es\nin vec2 p;\nvoid main() { gl_Position = vec4(p, 0.0, 1.0); }';
+const HEAD = '#version 300 es\nprecision highp float;\nuniform vec2 uRes;\nuniform float temps;\nout vec4 fragColor;\n' + HASH_SRC;
+const HEAD_LINES = HEAD.split('\n').length - 1;
+const MAIN_TAIL = `
+void main() {
+  vec2 uv = gl_FragCoord.xy / uRes;
+  fragColor = vec4(clamp(couleur(uv), 0.0, 1.0), 1.0);
+}`;
+const PROBE_HEAD = HEAD + `uniform vec2 probeUV;
+uniform int probeVar;
+uniform int probeComp;
+float probePick(float v) { return v; }
+float probePick(vec2 v) { return v[probeComp]; }
+float probePick(vec3 v) { return v[probeComp]; }
+float probePick(vec4 v) { return v[probeComp]; }
+`;
+const PROBE_TAIL = `
+void main() {
+  float v = probeRun(probeUV);
+  uint b = floatBitsToUint(v);
+  fragColor = vec4(float(b & 255u), float((b >> 8u) & 255u), float((b >> 16u) & 255u), float(b >> 24u)) / 255.0;
+}`;
+
+const NOISE_LIB = `
+float vnoise(vec2 p, float s) {
+  vec2 c = floor(p);
+  vec2 f = fract(p);
+  f = mix(f, f * f * (3.0 - 2.0 * f), s);
+  float bas = mix(hasard(c), hasard(c + vec2(1.0, 0.0)), f.x);
+  float haut = mix(hasard(c + vec2(0.0, 1.0)), hasard(c + vec2(1.0, 1.0)), f.x);
+  return mix(bas, haut, f.y);
+}
+vec2 direction(vec2 c) {
+  float a = hasard(c) * 6.2831853;
+  return vec2(cos(a), sin(a));
+}
+float gnoise(vec2 p) {
+  vec2 c = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  float n00 = dot(direction(c), f);
+  float n10 = dot(direction(c + vec2(1.0, 0.0)), f - vec2(1.0, 0.0));
+  float n01 = dot(direction(c + vec2(0.0, 1.0)), f - vec2(0.0, 1.0));
+  float n11 = dot(direction(c + vec2(1.0, 1.0)), f - vec2(1.0, 1.0));
+  return mix(mix(n00, n10, u.x), mix(n01, n11, u.x), u.y) * 0.75 + 0.5;
+}
+`;
+const DEMO_HEAD = '#version 300 es\nprecision highp float;\nuniform vec2 uRes;\nuniform float k;\nout vec4 fragColor;\n' + HASH_SRC + NOISE_LIB;
+const DEMOS = {
+  same: DEMO_HEAD + 'void main() { vec2 uv = gl_FragCoord.xy / uRes; fragColor = vec4(vec3(vnoise(uv * 6.0, 0.0)), 1.0); }',
+  chaos: DEMO_HEAD + `void main() {
+  vec2 uv = gl_FragCoord.xy / uRes;
+  vec2 p = uv * 6.0;
+  vec2 c = floor(p);
+  vec2 f = fract(p);
+  vec2 s = gl_FragCoord.xy * 0.731;
+  float bas = mix(hasard(c + s), hasard(c + vec2(1.0, 0.0) + s), f.x);
+  float haut = mix(hasard(c + vec2(0.0, 1.0) + s), hasard(c + vec2(1.0, 1.0) + s), f.x);
+  fragColor = vec4(vec3(mix(bas, haut, f.y)), 1.0);
+}`,
+  smooth: DEMO_HEAD + 'void main() { vec2 uv = gl_FragCoord.xy / uRes; fragColor = vec4(vec3(vnoise(uv * 6.0, k)), 1.0); }',
+  value: DEMO_HEAD + 'void main() { vec2 uv = gl_FragCoord.xy / uRes; fragColor = vec4(vec3(vnoise(uv * 6.0, 1.0)), 1.0); }',
+  gradient: DEMO_HEAD + 'void main() { vec2 uv = gl_FragCoord.xy / uRes; fragColor = vec4(vec3(clamp(gnoise(uv * 6.0), 0.0, 1.0)), 1.0); }'
+};
+const HERO_SRC = '#version 300 es\nprecision highp float;\nuniform vec2 uRes;\nuniform float uTime;\nuniform float uGrain;\nout vec4 fragColor;\n' + HASH_SRC + `
+float noise(vec2 p) {
+  vec2 c = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  float bas = mix(hasard(c), hasard(c + vec2(1.0, 0.0)), f.x);
+  float haut = mix(hasard(c + vec2(0.0, 1.0)), hasard(c + vec2(1.0, 1.0)), f.x);
+  return mix(bas, haut, f.y);
+}
+void main() {
+  vec2 uv = gl_FragCoord.xy / uRes.y;
+  float n1 = noise(uv * 2.5 + vec2(uTime * 0.10, uTime * 0.05));
+  float n2 = noise(uv * 4.0 + vec2(10.0 - uTime * 0.07, uTime * 0.04));
+  vec3 col = mix(vec3(0.08, 0.10, 0.30), vec3(0.93, 0.40, 0.55), n1);
+  col = mix(col, vec3(1.00, 0.78, 0.45), n2 * n2 * 0.8);
+  col += (hasard(gl_FragCoord.xy) - 0.5) * 0.02 * uGrain;
+  fragColor = vec4(col, 1.0);
+}`;
+
+const T0 = performance.now();
+const now = () => (performance.now() - T0) / 1000;
+
+class GL {
+  constructor(canvas, opts = {}) {
+    const gl = canvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: !!opts.preserve });
+    if (!gl) throw new Error('webgl2');
+    this.gl = gl;
+    gl.disable(gl.DITHER);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    this.vs = this.shader(gl.VERTEX_SHADER, VERT).shader;
+    this.fbos = {};
+    this.cache = {};
+    this.px4 = new Uint8Array(4);
+  }
+  shader(type, src) {
+    const gl = this.gl, s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      const log = gl.getShaderInfoLog(s) || 'Erreur inconnue';
+      gl.deleteShader(s);
+      return { error: log };
+    }
+    return { shader: s };
+  }
+  program(fs) {
+    const gl = this.gl, r = this.shader(gl.FRAGMENT_SHADER, fs);
+    if (r.error) return { error: r.error };
+    const p = gl.createProgram();
+    gl.attachShader(p, this.vs);
+    gl.attachShader(p, r.shader);
+    gl.bindAttribLocation(p, 0, 'p');
+    gl.linkProgram(p);
+    gl.deleteShader(r.shader);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+      const log = gl.getProgramInfoLog(p) || 'Erreur de liaison';
+      gl.deleteProgram(p);
+      return { error: log };
+    }
+    return { program: p, locs: {} };
+  }
+  cached(fs) { return this.cache[fs] || (this.cache[fs] = this.program(fs)); }
+  free(prog) { if (prog && prog.program) this.gl.deleteProgram(prog.program); }
+  fbo(size) {
+    if (this.fbos[size]) return this.fbos[size];
+    const gl = this.gl, tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    return (this.fbos[size] = fb);
+  }
+  draw(prog, w, h, fb, probe, floats) {
+    const gl = this.gl;
+    const u = n => (n in prog.locs) ? prog.locs[n] : (prog.locs[n] = gl.getUniformLocation(prog.program, n));
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb || null);
+    gl.viewport(0, 0, w, h);
+    gl.useProgram(prog.program);
+    gl.uniform2f(u('uRes'), w, h);
+    gl.uniform1f(u('temps'), now());
+    if (probe) {
+      gl.uniform2f(u('probeUV'), probe.x, probe.y);
+      gl.uniform1i(u('probeVar'), probe.k);
+      gl.uniform1i(u('probeComp'), probe.c);
+    }
+    if (floats) for (const n in floats) gl.uniform1f(u(n), floats[n]);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+  pixels(prog, n) {
+    const gl = this.gl;
+    this.draw(prog, n, n, this.fbo(n));
+    const out = new Uint8Array(n * n * 4);
+    gl.readPixels(0, 0, n, n, gl.RGBA, gl.UNSIGNED_BYTE, out);
+    return out;
+  }
+  probe(prog, x, y, k, c) {
+    const gl = this.gl;
+    this.draw(prog, 1, 1, this.fbo(1), { x, y, k, c });
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, this.px4);
+    return new DataView(this.px4.buffer).getFloat32(0, true);
+  }
+}
+
+/* ---------- Analyse du code ---------- */
+const DIMS = { float: 1, vec2: 2, vec3: 3, vec4: 4 };
+const count = (s, ch) => s.split(ch).length - 1;
+function buildProbe(src) {
+  const lines = src.split('\n');
+  const out = [], vars = [], returnLines = [];
+  const sigRe = /^\s*vec3\s+couleur\s*\(\s*vec2\s+uv\s*\)/;
+  let inFn = false, done = false, depth = 0, sigLine = -1;
+  lines.forEach((line, i) => {
+    const bare = line.replace(/\/\/.*$/, '');
+    if (!inFn && !done && sigRe.test(bare)) {
+      inFn = true; sigLine = i;
+      out.push(line.replace(/vec3\s+couleur/, 'float probeRun'));
+      depth += count(bare, '{') - count(bare, '}');
+      return;
+    }
+    if (inFn) {
+      const before = depth;
+      depth += count(bare, '{') - count(bare, '}');
+      const ret = bare.match(/^(\s*)return\s+(.+?);\s*$/);
+      if (ret) {
+        out.push(`${ret[1]}return probePick(${ret[2]});`);
+        returnLines.push(i);
+      } else {
+        out.push(line);
+        const dm = before === 1 && bare.match(/^\s*(float|vec2|vec3|vec4)\s+([A-Za-z_]\w*)\s*=[^;]*;\s*$/);
+        if (dm) {
+          out.push(`if (probeVar == ${vars.length}) return probePick(${dm[2]});`);
+          vars.push({ line: i, type: dm[1], name: dm[2] });
+        }
+      }
+      if (depth <= 0 && before > 0) { inFn = false; done = true; }
+      return;
+    }
+    out.push(line);
+  });
+  return { code: out.join('\n'), vars, returnLines, sigLine };
+}
+const writableIndex = code => {
+  const lines = code.split('\n');
+  for (let i = lines.length - 1; i >= 0; i--) if (/^\s*return\b/.test(lines[i])) return i;
+  return -1;
+};
+const parseTaille = code => {
+  const m = /float\s+taille\s*=\s*(-?\d*\.?\d+)/.exec(code);
+  const v = m ? parseFloat(m[1]) : NaN;
+  return v > 0.2 && v < 80 ? v : null;
+};
+
+/* ---------- État ---------- */
+const $ = s => document.querySelector(s);
+const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const clamp01 = v => Math.min(1, Math.max(0, v));
+const N = 48;
+const STORE = 'atelier-shader-noise-v1';
+
+const el = {
+  view: $('#view'), grid: $('#grid'), overlay: $('#overlay'), probe: $('#probe'), probeText: $('#probe-text'),
+  target: $('#target'), score: $('#score'), fill: $('#meter-fill'), win: $('#win'),
+  code: $('#code'), editor: $('#editor'), btnEdit: $('#btn-edit'), error: $('#error'), help: $('#code-help'),
+  btnGrid: $('#btn-grid'), pref: $('#pref-open')
+};
+const state = {
+  code: LESSON.code, editing: false, probe: { x: .37, y: .58 }, grid: true, foldOpen: false,
+  prog: null, probeProg: null, probeInfo: null, probeVals: null, probeMap: {},
+  tprog: null, targetPixels: null, won: false, dirty: true, scrubbing: false, errLine: -1
+};
+const store = (() => { try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { return {}; } })();
+const saveStore = () => { try { localStorage.setItem(STORE, JSON.stringify(store)); } catch (e) {} };
+
+let view, tview;
+try {
+  view = new GL(el.view);
+  tview = new GL(el.target);
+} catch (e) {
+  $('#main').innerHTML = '<p class="fallback">Ce navigateur ne prend pas en charge WebGL 2, nécessaire pour faire tourner les shaders. Essaie avec une version récente de Chrome, Firefox, Safari ou Edge.</p>';
+  return;
+}
+
+/* ---------- Planification ---------- */
+let compilePending = false, compileTimer = null, renderPending = false, probePending = false;
+function scheduleCompile(delay) {
+  clearTimeout(compileTimer);
+  if (delay) { compileTimer = setTimeout(() => scheduleCompile(0), delay); return; }
+  if (compilePending) return;
+  compilePending = true;
+  requestAnimationFrame(() => { compilePending = false; compile(); });
+}
+function scheduleRenderCode() {
+  if (renderPending) return;
+  renderPending = true;
+  requestAnimationFrame(() => { renderPending = false; if (!state.editing && !state.scrubbing) renderCode(); });
+}
+function scheduleProbe() {
+  if (probePending) return;
+  probePending = true;
+  requestAnimationFrame(() => { probePending = false; updateProbe(); });
+}
+function setCode(code, from) {
+  state.code = code;
+  if (state.editing && from !== 'editor') el.editor.value = code;
+  if (!state.editing && from !== 'scrub' && from !== 'line') scheduleRenderCode();
+  scheduleCompile(from === 'editor' || from === 'line' ? 260 : 0);
+}
+
+/* ---------- Compilation ---------- */
+function compile() {
+  const r = view.program(HEAD + state.code + MAIN_TAIL);
+  if (r.error) { showError(r.error); return; }
+  hideError();
+  view.free(state.prog);
+  state.prog = r;
+  const info = buildProbe(state.code);
+  const pr = view.program(PROBE_HEAD + info.code + PROBE_TAIL);
+  view.free(state.probeProg);
+  state.probeProg = pr.error ? null : pr;
+  state.probeInfo = info;
+  updateScore();
+  updateProbe();
+  state.dirty = true;
+}
+function showError(log) {
+  const m = /ERROR:\s*\d+:(\d+):\s*([^\n]*)/.exec(log);
+  let msg = log.split('\n')[0];
+  state.errLine = -1;
+  if (m) {
+    const ln = +m[1] - HEAD_LINES;
+    state.errLine = ln - 1;
+    msg = ln >= 1 ? `Ligne ${ln} : ${m[2].trim()}` : m[2].trim();
+  }
+  el.error.textContent = `Le shader ne compile pas, l’image garde la dernière version valide.\n${msg}`;
+  el.error.hidden = false;
+  markErrorLine();
+}
+function hideError() { el.error.hidden = true; state.errLine = -1; markErrorLine(); }
+function markErrorLine() {
+  el.code.querySelectorAll('.line[data-line]').forEach(d => d.classList.toggle('err-line', +d.dataset.line === state.errLine));
+}
+
+/* ---------- Ressemblance ---------- */
+function buildTarget() {
+  const t = tview.program(HEAD + LESSON.target + MAIN_TAIL);
+  if (t.error) return;
+  state.tprog = t;
+  state.targetPixels = tview.pixels(t, N);
+  drawTarget();
+}
+function drawTarget() {
+  if (!state.tprog) return;
+  fit(el.target);
+  tview.draw(state.tprog, el.target.width, el.target.height, null);
+}
+function updateScore() {
+  if (!state.targetPixels || !state.prog) return;
+  const px = view.pixels(state.prog, N), t = state.targetPixels;
+  let s = 0;
+  for (let i = 0; i < px.length; i += 4) s += Math.abs(px[i] - t[i]) + Math.abs(px[i + 1] - t[i + 1]) + Math.abs(px[i + 2] - t[i + 2]);
+  const score = Math.max(0, 1 - (s / (N * N * 3 * 255)) * 2) * 100;
+  el.score.textContent = `${Math.floor(score)}\u202f%`;
+  el.fill.style.width = `${score}%`;
+  el.fill.classList.toggle('done', score >= 97);
+  state.dirty = true;
+  if (score >= 97 && !state.won) {
+    state.won = true;
+    el.win.hidden = false;
+    store.won = true; saveStore();
+    const todo = el.code.querySelector('.todo');
+    if (todo) todo.remove();
+  }
+}
+
+/* ---------- Inspecteur et grille ---------- */
+const fmt = v => Number.isFinite(v) ? (Math.abs(v) < 0.005 ? 0 : v).toFixed(2) : 'NaN';
+const swatch = vals => {
+  const [r, g, b] = vals.map(v => Math.round(clamp01(Number.isFinite(v) ? v : 0) * 255));
+  return `<span class="sw" style="background:rgb(${r},${g},${b})"></span>`;
+};
+const tuple = vals => `(${vals.map(fmt).join(', ')})`;
+
+function updateProbe() {
+  positionProbe();
+  updateProbeText();
+  const info = state.probeInfo;
+  state.probeMap = {};
+  if (!state.probeProg || !info) { state.probeVals = null; updateAnnotations(); drawGrid(); return; }
+  const { x, y } = state.probe;
+  const vals = [];
+  if (info.sigLine >= 0) vals.push({ line: info.sigLine, html: `uv = ${tuple([x, y])}` });
+  info.vars.forEach((v, k) => {
+    const comps = [];
+    for (let c = 0; c < DIMS[v.type]; c++) comps.push(view.probe(state.probeProg, x, y, k, c));
+    state.probeMap[v.name] = comps;
+    const html = v.type === 'float' ? `= ${fmt(comps[0])}` : v.type === 'vec3' ? `${swatch(comps)}${tuple(comps)}` : `= ${tuple(comps)}`;
+    vals.push({ line: v.line, html });
+  });
+  if (info.returnLines.length) {
+    const comps = [0, 1, 2].map(c => view.probe(state.probeProg, x, y, -1, c));
+    vals.push({ line: info.returnLines[info.returnLines.length - 1], html: `${swatch(comps)}pixel ${tuple(comps.map(clamp01))}` });
+  }
+  state.probeVals = vals;
+  state.dirty = true;
+  updateAnnotations();
+  drawGrid();
+}
+function updateAnnotations() {
+  if (state.editing) return;
+  el.code.querySelectorAll('.ann').forEach(a => { a.innerHTML = ''; });
+  if (!state.probeVals) return;
+  for (const pv of state.probeVals) {
+    const a = el.code.querySelector(`.line[data-line="${pv.line}"] .ann`);
+    if (a) a.innerHTML = pv.html;
+  }
+}
+function positionProbe() {
+  el.probe.style.left = `${state.probe.x * 100}%`;
+  el.probe.style.top = `${(1 - state.probe.y) * 100}%`;
+}
+function updateProbeText() {
+  const p = `<code>uv = ${tuple([state.probe.x, state.probe.y])}</code>`;
+  el.probeText.innerHTML = state.editing
+    ? `Pixel inspecté : ${p}. Reviens au mode guidé pour voir ses valeurs dans le code.`
+    : `Pixel inspecté : ${p}. Clique ou glisse sur l’image pour en choisir un autre, ses valeurs s’affichent dans le code.`;
+}
+function drawGrid() {
+  const cv = el.grid, ctx = cv.getContext('2d');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const r = cv.getBoundingClientRect();
+  const W = Math.round(r.width * dpr), H = Math.round(r.height * dpr);
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  ctx.clearRect(0, 0, W, H);
+  const taille = parseTaille(state.code);
+  if (!state.grid || !taille) return;
+  ctx.save();
+  ctx.lineWidth = 1 * dpr;
+  ctx.strokeStyle = 'rgba(255, 106, 176, .55)';
+  ctx.beginPath();
+  for (let i = 1; i < taille; i++) {
+    const x = Math.round(i / taille * W) + .5, y = Math.round(H - i / taille * H) + .5;
+    ctx.moveTo(x, 0); ctx.lineTo(x, H);
+    ctx.moveTo(0, y); ctx.lineTo(W, y);
+  }
+  ctx.stroke();
+  // case du pixel inspecté
+  const cx = Math.floor(state.probe.x * taille), cy = Math.floor(state.probe.y * taille);
+  const X = u => u / taille * W, Y = v => H - v / taille * H;
+  ctx.lineWidth = 2.5 * dpr;
+  ctx.strokeStyle = '#FF6AB0';
+  ctx.strokeRect(X(cx), Y(cy + 1), W / taille, H / taille);
+  // coins
+  const corners = [['a', 0, 0], ['b', 1, 0], ['d', 0, 1], ['e', 1, 1]];
+  ctx.font = `600 ${11 * dpr}px "JetBrains Mono", ui-monospace, monospace`;
+  ctx.textBaseline = 'middle';
+  for (const [name, ox, oy] of corners) {
+    const px = X(cx + ox), py = Y(cy + oy);
+    const v = state.probeMap[name] ? state.probeMap[name][0] : null;
+    const g = Math.round(clamp01(v == null ? 0 : v) * 255);
+    ctx.beginPath();
+    ctx.arc(px, py, 7 * dpr, 0, Math.PI * 2);
+    ctx.fillStyle = `rgb(${g},${g},${g})`;
+    ctx.fill();
+    ctx.lineWidth = 2 * dpr;
+    ctx.strokeStyle = '#FF6AB0';
+    ctx.stroke();
+    const label = v == null ? name : `${name} ${fmt(v)}`;
+    const tw = ctx.measureText(label).width + 10 * dpr, th = 18 * dpr;
+    let lx = ox ? px + 10 * dpr : px - tw - 10 * dpr;
+    let ly = oy ? py - 14 * dpr : py + 14 * dpr;
+    lx = Math.min(Math.max(lx, 2 * dpr), W - tw - 2 * dpr);
+    ly = Math.min(Math.max(ly, th / 2 + 2 * dpr), H - th / 2 - 2 * dpr);
+    ctx.fillStyle = 'rgba(14, 16, 40, .82)';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(lx, ly - th / 2, tw, th, 4 * dpr); else ctx.rect(lx, ly - th / 2, tw, th);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.fillText(label, lx + 5 * dpr, ly + .5);
+  }
+  ctx.restore();
+}
+
+/* ---------- Affichage du code ---------- */
+const KW = new Set(['float', 'vec2', 'vec3', 'vec4', 'int', 'bool', 'return', 'if', 'else', 'for', 'void', 'const', 'true', 'false']);
+const FN = new Set(['mix', 'distance', 'smoothstep', 'step', 'sin', 'cos', 'length', 'clamp', 'exp', 'abs', 'fract', 'floor', 'ceil', 'pow', 'min', 'max', 'dot', 'normalize', 'mod', 'sqrt', 'hasard']);
+const INPUTS = new Set(['uv', 'temps']);
+
+function tokens(line, offset, scrub) {
+  const frag = document.createDocumentFragment();
+  const re = /(\/\/.*)|([A-Za-z_]\w*)|(\d+\.\d*|\.\d+)|(\d+)|(\s+)|([\s\S])/g;
+  let m;
+  while ((m = re.exec(line))) {
+    const t = m[0];
+    if (m[1]) frag.appendChild(mk('span', 'cm', t));
+    else if (m[2]) frag.appendChild(mk('span', KW.has(t) ? 'kw' : FN.has(t) ? 'fn' : INPUTS.has(t) ? 'in' : '', t));
+    else if (m[3] && scrub) {
+      const s = mk('span', 'num', t);
+      s.dataset.start = offset + m.index;
+      s.tabIndex = 0;
+      s.setAttribute('role', 'slider');
+      s.setAttribute('aria-valuenow', t);
+      s.setAttribute('aria-label', `Nombre ${t}, flèches pour ajuster`);
+      frag.appendChild(s);
+    } else if (m[3] || m[4]) frag.appendChild(mk('span', 'lit', t));
+    else frag.appendChild(document.createTextNode(t));
+  }
+  return frag;
+}
+
+function renderCode() {
+  el.code.innerHTML = '';
+  // la boîte fournie, repliée
+  const fold = mk('div', 'line fold');
+  fold.tabIndex = 0;
+  fold.setAttribute('role', 'button');
+  fold.setAttribute('aria-expanded', String(state.foldOpen));
+  fold.appendChild(mk('span', 'foldtxt', `${state.foldOpen ? '▾' : '▸'} float hasard(vec2 c) { … }`));
+  fold.appendChild(mk('span', 'cm', '   // boîte fournie'));
+  el.code.appendChild(fold);
+  if (state.foldOpen) HASH_SRC.trim().split('\n').forEach(l => el.code.appendChild(mk('div', 'line ro', l)));
+
+  const lines = state.code.split('\n');
+  const wIdx = writableIndex(state.code);
+  let offset = 0;
+  lines.forEach((line, i) => {
+    const div = mk('div', 'line');
+    div.dataset.line = i;
+    const decl = /^\s*(?:float|vec2|vec3|vec4)\s+([A-Za-z_]\w*)/.exec(line);
+    const scrub = !!decl && LESSON.scrubVars.includes(decl[1]);
+    if (i === wIdx) {
+      const indent = /^\s*/.exec(line)[0];
+      div.appendChild(document.createTextNode(indent));
+      const inp = mk('input', 'wl');
+      inp.type = 'text';
+      inp.value = line.slice(indent.length);
+      inp.spellcheck = false;
+      inp.setAttribute('autocapitalize', 'off');
+      inp.setAttribute('autocomplete', 'off');
+      inp.setAttribute('aria-label', 'Ligne à écrire');
+      inp.size = Math.max(inp.value.length + 2, 24);
+      inp.addEventListener('input', () => {
+        inp.size = Math.max(inp.value.length + 2, 24);
+        const ls = state.code.split('\n');
+        ls[i] = indent + inp.value;
+        setCode(ls.join('\n'), 'line');
+      });
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); scheduleCompile(0); } });
+      div.appendChild(inp);
+      div.appendChild(mk('span', 'ann'));
+      if (!state.won) div.appendChild(mk('span', 'todo', 'à toi : mélange bas et haut selon f.y'));
+    } else {
+      div.appendChild(tokens(line, offset, scrub));
+      div.appendChild(mk('span', 'ann'));
+    }
+    el.code.appendChild(div);
+    offset += line.length + 1;
+  });
+  markErrorLine();
+  updateAnnotations();
+}
+el.code.addEventListener('click', e => {
+  if (e.target.closest('.fold')) { state.foldOpen = !state.foldOpen; renderCode(); el.code.querySelector('.fold').focus(); }
+});
+el.code.addEventListener('keydown', e => {
+  if (e.target.classList.contains('fold') && (e.key === 'Enter' || e.key === ' ')) {
+    e.preventDefault(); state.foldOpen = !state.foldOpen; renderCode(); el.code.querySelector('.fold').focus(); return;
+  }
+  const n = e.target.closest('.num');
+  if (!n) return;
+  const dir = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
+  if (!dir) return;
+  e.preventDefault();
+  const start = +n.dataset.start, len = n.textContent.length;
+  const txt = (parseFloat(n.textContent) + dir * (e.shiftKey ? 1 : 0.1)).toFixed(1);
+  setCode(state.code.slice(0, start) + txt + state.code.slice(start + len), 'scrub');
+  renderCode();
+  const f = el.code.querySelector(`.num[data-start="${start}"]`);
+  if (f) f.focus();
+});
+el.code.addEventListener('pointerdown', e => {
+  const n = e.target.closest('.num');
+  if (!n || e.button > 0) return;
+  e.preventDefault();
+  n.setPointerCapture(e.pointerId);
+  const start = +n.dataset.start, v0 = parseFloat(n.textContent), x0 = e.clientX;
+  let len = n.textContent.length, moved = false;
+  state.scrubbing = true;
+  n.classList.add('active');
+  document.body.classList.add('scrubbing');
+  const move = ev => {
+    const dx = ev.clientX - x0;
+    if (!moved && Math.abs(dx) < 3) return;
+    moved = true;
+    const fine = ev.shiftKey;
+    const txt = Math.max(0.5, v0 + dx * (fine ? 0.005 : 0.04)).toFixed(fine ? 2 : 1);
+    setCode(state.code.slice(0, start) + txt + state.code.slice(start + len), 'scrub');
+    len = txt.length;
+    n.textContent = txt;
+  };
+  const up = () => {
+    n.removeEventListener('pointermove', move);
+    n.removeEventListener('pointerup', up);
+    n.removeEventListener('pointercancel', up);
+    state.scrubbing = false;
+    document.body.classList.remove('scrubbing');
+    renderCode();
+    if (!moved) { const f = el.code.querySelector(`.num[data-start="${start}"]`); if (f) f.focus(); }
+  };
+  n.addEventListener('pointermove', move);
+  n.addEventListener('pointerup', up);
+  n.addEventListener('pointercancel', up);
+});
+
+/* ---------- Image : inspection ---------- */
+el.overlay.addEventListener('pointerdown', e => {
+  if (e.button > 0) return;
+  e.preventDefault();
+  const rect = el.overlay.getBoundingClientRect();
+  const pos = ev => ({ x: clamp01((ev.clientX - rect.left) / rect.width), y: clamp01(1 - (ev.clientY - rect.top) / rect.height) });
+  el.overlay.setPointerCapture(e.pointerId);
+  const move = ev => { state.probe = pos(ev); positionProbe(); scheduleProbe(); };
+  move(e);
+  const up = () => {
+    el.overlay.removeEventListener('pointermove', move);
+    el.overlay.removeEventListener('pointerup', up);
+    el.overlay.removeEventListener('pointercancel', up);
+  };
+  el.overlay.addEventListener('pointermove', move);
+  el.overlay.addEventListener('pointerup', up);
+  el.overlay.addEventListener('pointercancel', up);
+});
+el.btnGrid.addEventListener('click', () => {
+  state.grid = !state.grid;
+  el.btnGrid.setAttribute('aria-pressed', String(state.grid));
+  el.btnGrid.textContent = state.grid ? 'Grille affichée' : 'Grille masquée';
+  drawGrid();
+});
+
+/* ---------- Mode libre ---------- */
+function setEditing(on) {
+  state.editing = on;
+  el.btnEdit.setAttribute('aria-pressed', String(on));
+  el.btnEdit.textContent = on ? 'Revenir au mode guidé' : 'Modifier tout le code';
+  el.code.hidden = on;
+  el.editor.hidden = !on;
+  el.help.textContent = on
+    ? 'Mode libre : tout le code est modifiable. La fonction hasard reste fournie.'
+    : 'Glisse le nombre rose pour changer la taille de la grille, et écris la ligne encadrée.';
+  if (on) { el.editor.value = state.code; autoSize(); el.editor.focus(); }
+  else { renderCode(); updateProbe(); }
+  updateProbeText();
+}
+function autoSize() { el.editor.style.height = 'auto'; el.editor.style.height = `${el.editor.scrollHeight + 4}px`; }
+el.btnEdit.addEventListener('click', () => setEditing(!state.editing));
+el.editor.addEventListener('input', () => { autoSize(); setCode(el.editor.value, 'editor'); });
+el.editor.addEventListener('keydown', e => {
+  if (e.key !== 'Tab' || e.shiftKey) return;
+  e.preventDefault();
+  const { selectionStart: a, selectionEnd: b, value } = el.editor;
+  el.editor.value = value.slice(0, a) + '  ' + value.slice(b);
+  el.editor.selectionStart = el.editor.selectionEnd = a + 2;
+  setCode(el.editor.value, 'editor');
+});
+
+/* ---------- Démos « Sous le capot » ---------- */
+const miniCanvas = document.createElement('canvas');
+let mini = null;
+function renderDemo(id, key, floats) {
+  const target = document.getElementById(id);
+  if (!target) return;
+  if (!mini) mini = new GL(miniCanvas, { preserve: true });
+  const prog = mini.cached(DEMOS[key]);
+  if (prog.error) return;
+  fit(target);
+  const s = target.width;
+  if (miniCanvas.width !== s || miniCanvas.height !== s) { miniCanvas.width = s; miniCanvas.height = s; }
+  mini.draw(prog, s, s, null, null, floats);
+  const ctx = target.getContext('2d');
+  ctx.clearRect(0, 0, s, s);
+  ctx.drawImage(miniCanvas, 0, 0);
+}
+
+const hash = { x: 3, y: 2 };
+function renderHashLab() {
+  $('#hx').textContent = hash.x;
+  $('#hy').textContent = hash.y;
+  const d = hash.x * 127.1 + hash.y * 311.7;
+  const s = Math.sin(d), m = s * 43758.5453, r = m - Math.floor(m);
+  $('#hashlab').innerHTML =
+    `<dt>dot(c, vec2(127.1, 311.7))</dt><dd>${d.toFixed(1)}</dd>` +
+    `<dt>sin(…)</dt><dd>${s.toFixed(5)}</dd>` +
+    `<dt>× 43758.5453</dt><dd>${m.toFixed(2)}</dd>` +
+    `<dt>fract(…)</dt><dd class="res">${r.toFixed(3)}</dd>`;
+}
+document.querySelectorAll('[data-hx],[data-hy]').forEach(b => b.addEventListener('click', () => {
+  if (b.dataset.hx) hash.x = Math.max(0, Math.min(99, hash.x + +b.dataset.hx));
+  if (b.dataset.hy) hash.y = Math.max(0, Math.min(99, hash.y + +b.dataset.hy));
+  renderHashLab();
+}));
+
+const PROFILE = [0.2, 0.85, 0.35, 0.6, 0.1, 0.75, 0.45];
+function drawPlot(k) {
+  const cv = $('#plot'), ctx = cv.getContext('2d');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), r = cv.getBoundingClientRect();
+  const W = Math.round(r.width * dpr), H = Math.round(r.height * dpr);
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const css = getComputedStyle(document.documentElement);
+  ctx.clearRect(0, 0, W, H);
+  const cells = PROFILE.length - 1, pad = 14 * dpr;
+  const X = t => pad + t / cells * (W - 2 * pad), Y = v => H - pad - v * (H - 2 * pad);
+  ctx.strokeStyle = css.getPropertyValue('--line').trim() || '#ccc';
+  ctx.lineWidth = 1 * dpr;
+  ctx.beginPath();
+  for (let i = 0; i <= cells; i++) { ctx.moveTo(X(i), pad / 2); ctx.lineTo(X(i), H - pad / 2); }
+  ctx.stroke();
+  ctx.strokeStyle = css.getPropertyValue('--deep').trim() || '#0B7A75';
+  ctx.lineWidth = 2.5 * dpr;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  const steps = 60;
+  for (let i = 0; i < cells; i++) {
+    for (let j = 0; j <= steps; j++) {
+      const f = j / steps, sf = f * f * (3 - 2 * f), t = f + (sf - f) * k;
+      const v = PROFILE[i] + (PROFILE[i + 1] - PROFILE[i]) * t;
+      const px = X(i + f), py = Y(v);
+      if (i === 0 && j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+  }
+  ctx.stroke();
+  ctx.fillStyle = css.getPropertyValue('--num').trim() || '#C8156A';
+  PROFILE.forEach((v, i) => { ctx.beginPath(); ctx.arc(X(i), Y(v), 4 * dpr, 0, Math.PI * 2); ctx.fill(); });
+}
+const smoothInput = $('#smooth-k');
+function updateSmooth() {
+  const k = parseFloat(smoothInput.value);
+  $('#smooth-out').textContent = k.toFixed(2);
+  drawPlot(k);
+  renderDemo('demo-smooth', 'smooth', { k });
+}
+smoothInput.addEventListener('input', updateSmooth);
+
+const initDemo = {
+  hash() { renderHashLab(); renderDemo('demo-same', 'same'); renderDemo('demo-chaos', 'chaos'); },
+  smooth() { updateSmooth(); },
+  perlin() { renderDemo('demo-value', 'value'); renderDemo('demo-gradient', 'gradient'); }
+};
+const details = [...document.querySelectorAll('details.deep')];
+details.forEach(d => d.addEventListener('toggle', () => { if (d.open) requestAnimationFrame(() => initDemo[d.dataset.demo]()); }));
+el.pref.checked = !!store.openAll;
+function applyPref() { if (el.pref.checked) details.forEach(d => { d.open = true; }); }
+el.pref.addEventListener('change', () => {
+  store.openAll = el.pref.checked; saveStore();
+  details.forEach(d => { d.open = el.pref.checked; });
+});
+
+/* ---------- « Dans la vraie vie » ---------- */
+const heroCanvas = $('#hero');
+let hero = null, heroProg = null, heroVisible = false, heroAnim = true, heroGrain = 1, heroTime = 0, heroLast = 0;
+try {
+  hero = new GL(heroCanvas);
+  heroProg = hero.program(HERO_SRC);
+  if (heroProg.error) { console.warn(heroProg.error); heroProg = null; }
+} catch (e) { hero = null; }
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+if (reduceMotion.matches) heroAnim = false;
+const btnAnim = $('#btn-anim'), btnGrain = $('#btn-grain');
+btnAnim.setAttribute('aria-pressed', String(heroAnim));
+btnAnim.addEventListener('click', () => { heroAnim = !heroAnim; btnAnim.setAttribute('aria-pressed', String(heroAnim)); drawHero(); });
+btnGrain.addEventListener('click', () => { heroGrain = heroGrain ? 0 : 1; btnGrain.setAttribute('aria-pressed', String(!!heroGrain)); drawHero(); });
+new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; if (heroVisible) drawHero(); }).observe(heroCanvas);
+function drawHero() {
+  if (!hero || !heroProg) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), r = heroCanvas.getBoundingClientRect();
+  const W = Math.max(1, Math.round(r.width * dpr)), H = Math.max(1, Math.round(r.height * dpr));
+  if (heroCanvas.width !== W || heroCanvas.height !== H) { heroCanvas.width = W; heroCanvas.height = H; }
+  hero.draw(heroProg, W, H, null, null, { uTime: heroTime, uGrain: heroGrain });
+}
+
+const tabs = [...document.querySelectorAll('.tab')];
+const snippet = $('#snippet');
+let activeSnip = 'snip-glsl';
+function showSnip(id) {
+  activeSnip = id;
+  tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.snip === id)));
+  snippet.textContent = document.getElementById(id).textContent;
+  $('#btn-copy').textContent = 'Copier';
+}
+tabs.forEach(t => t.addEventListener('click', () => showSnip(t.dataset.snip)));
+$('#btn-copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(document.getElementById(activeSnip).textContent); $('#btn-copy').textContent = 'Copié'; }
+  catch (e) { $('#btn-copy').textContent = 'Copie bloquée, sélectionne le texte'; }
+});
+
+/* ---------- Boucle ---------- */
+function fit(canvas) {
+  const r = canvas.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(1, Math.round(r.width * dpr));
+  if (canvas.width !== w || canvas.height !== w) { canvas.width = w; canvas.height = w; return true; }
+  return false;
+}
+new ResizeObserver(() => { if (fit(el.view)) state.dirty = true; drawGrid(); }).observe(el.view);
+new ResizeObserver(() => drawTarget()).observe(el.target);
+new ResizeObserver(() => drawHero()).observe(heroCanvas);
+
+function loop(t) {
+  if (state.prog && state.dirty) {
+    view.draw(state.prog, el.view.width, el.view.height, null);
+    state.dirty = false;
+  }
+  const dt = heroLast ? (t - heroLast) / 1000 : 0;
+  heroLast = t;
+  if (heroAnim && heroVisible) { heroTime += dt; drawHero(); }
+  requestAnimationFrame(loop);
+}
+
+/* ---------- Démarrage ---------- */
+fit(el.view);
+setEditing(false);
+buildTarget();
+showSnip('snip-glsl');
+applyPref();
+compile();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

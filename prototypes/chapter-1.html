@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atelier Shader : chapitre 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #EEF0F5; --panel: #FFFFFF; --ink: #1B1F3B; --muted: #585E82; --line: #D3D7E4;
+  --num: #C8156A; --num-bg: rgba(200, 21, 106, .08); --kw: #3446A8; --fn: #00747F; --cm: #8A90AE; --input: #A35300;
+  --ok: #1B8157; --err: #C62828; --code-bg: #F7F8FB;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #14162A; --panel: #1C1F37; --ink: #E6E8F5; --muted: #A3A8CA; --line: #2F3356;
+    --num: #FF6AB0; --num-bg: rgba(255, 106, 176, .12); --kw: #A3ACFF; --fn: #4DD0E1; --cm: #6E7398; --input: #FFB74D;
+    --ok: #4CC38A; --err: #FF7B7B; --code-bg: #171A30;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #14162A; --panel: #1C1F37; --ink: #E6E8F5; --muted: #A3A8CA; --line: #2F3356;
+  --num: #FF6AB0; --num-bg: rgba(255, 106, 176, .12); --kw: #A3ACFF; --fn: #4DD0E1; --cm: #6E7398; --input: #FFB74D;
+  --ok: #4CC38A; --err: #FF7B7B; --code-bg: #171A30;
+  color-scheme: dark;
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+}
+:focus-visible { outline: 2px solid var(--num); outline-offset: 2px; }
+.mono, code { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.app { max-width: 1240px; margin: 0 auto; padding: 20px clamp(16px, 3vw, 36px) 48px; }
+.top {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+  gap: 16px 32px; padding-bottom: 20px; border-bottom: 1px solid var(--line); margin-bottom: 28px;
+}
+h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: -.03em; line-height: 1; margin: 0; }
+.chapter { margin: .45rem 0 0; color: var(--muted); }
+.levels { list-style: none; display: flex; gap: 6px; margin: 0; padding: 0; flex-wrap: wrap; }
+.lvl {
+  position: relative; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--ink); font-family: inherit; font-weight: 600; font-size: 15px; cursor: pointer;
+}
+.lvl:hover { border-color: var(--muted); }
+.lvl[aria-current="step"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.lvl.solved::after {
+  content: ""; position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--ok); border: 2px solid var(--paper);
+}
+
+.grid {
+  display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+  grid-template-areas: "lesson stage" "code stage"; grid-template-rows: auto 1fr; gap: 28px 44px; align-items: start;
+}
+.lesson { grid-area: lesson; }
+.stage { grid-area: stage; position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); }
+.code-panel { grid-area: code; min-width: 0; }
+@media (max-width: 900px) {
+  .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "lesson" "stage" "code"; }
+  .stage { position: static; }
+}
+
+h2 { font-size: 1.75rem; font-weight: 800; letter-spacing: -.02em; margin: 0 0 .6rem; line-height: 1.15; }
+.text p { margin: 0 0 .8rem; max-width: 62ch; }
+.text code, .goal code, .hint code, .probe-text code {
+  font-size: .86em; background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 .3em;
+}
+.goal {
+  max-width: 62ch; margin: 0 0 1rem; padding: .7rem 1rem; border-left: 3px solid var(--num);
+  background: var(--panel); border-radius: 0 8px 8px 0; font-weight: 600;
+}
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn {
+  font-family: inherit; font-size: .95rem; font-weight: 600; padding: .55rem 1rem; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.hint { max-width: 62ch; margin: .9rem 0 0; color: var(--muted); }
+
+.viewport { position: relative; width: 100%; max-width: 520px; aspect-ratio: 1; }
+#view { display: block; width: 100%; height: 100%; border-radius: 14px; background: #000; }
+.overlay { position: absolute; inset: 0; touch-action: none; cursor: crosshair; border-radius: 14px; }
+.probe-mark {
+  position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
+  border: 2px solid #fff; box-shadow: 0 0 0 1.5px rgba(0,0,0,.6), inset 0 0 0 1.5px rgba(0,0,0,.6); pointer-events: none;
+}
+.handle {
+  position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%;
+  background: rgba(255,255,255,.22); border: 2.5px solid #fff; box-shadow: 0 1px 6px rgba(0,0,0,.45);
+  cursor: grab; touch-action: none;
+}
+.handle.dragging { cursor: grabbing; background: rgba(255,255,255,.4); }
+.handle span {
+  position: absolute; left: 50%; top: 28px; transform: translateX(-50%);
+  font: 600 11px/1 "JetBrains Mono", ui-monospace, monospace; color: #fff; background: rgba(10,12,30,.72);
+  padding: 3px 5px; border-radius: 4px; white-space: nowrap; pointer-events: none;
+}
+.probe-text { color: var(--muted); font-size: .92rem; margin: .7rem 0 1.2rem; max-width: 520px; }
+
+.target-panel { display: flex; gap: 18px; align-items: flex-start; max-width: 520px; }
+.target { margin: 0; flex: 0 0 112px; }
+#target { display: block; width: 112px; height: 112px; border-radius: 10px; background: #000; }
+figcaption { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.meter-wrap { flex: 1; min-width: 0; }
+.meter-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: .92rem; color: var(--muted); }
+.meter-head strong { color: var(--ink); font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.meter { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; margin: .4rem 0 1rem; }
+.meter-fill { height: 100%; width: 0; background: var(--num); transition: width .2s ease, background-color .2s; }
+.meter-fill.done { background: var(--ok); }
+.win { border-left: 3px solid var(--ok); padding: .15rem 0 .15rem .9rem; }
+.win p { margin: 0 0 .6rem; font-weight: 600; }
+.sandbox-panel { max-width: 520px; }
+.sandbox-panel p { margin: 0 0 .7rem; color: var(--muted); }
+.copy-status { margin-left: .7rem; color: var(--ok); font-weight: 600; font-size: .92rem; }
+
+.code-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: .6rem; }
+h3 { font-size: 1.1rem; margin: 0; font-weight: 800; }
+.code {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; line-height: 1.75;
+  background: var(--code-bg); color: var(--ink); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px 0; overflow-x: auto; counter-reset: ln;
+}
+.line { white-space: pre; padding-right: 16px; min-height: 1.75em; counter-increment: ln; }
+.line::before {
+  content: counter(ln); display: inline-block; width: 2.4em; margin-right: 1em; text-align: right;
+  color: var(--cm); user-select: none;
+}
+.line.err-line { background: rgba(198, 40, 40, .12); }
+.editor { display: block; width: 100%; padding: 14px 16px; resize: vertical; tab-size: 2; white-space: pre; }
+.kw { color: var(--kw); font-weight: 600; }
+.fn { color: var(--fn); }
+.in { color: var(--input); font-weight: 600; }
+.cm { color: var(--cm); font-style: italic; }
+.num {
+  color: var(--num); background: var(--num-bg); border-bottom: 1.5px dashed currentColor;
+  border-radius: 3px 3px 0 0; cursor: ew-resize; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.num:hover, .num.active { background: var(--num); color: var(--panel); }
+body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: none; }
+.ann {
+  margin-left: 2em; padding: 2px 9px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line);
+  color: var(--muted); font-size: 12px; white-space: nowrap;
+}
+.ann:empty { display: none; }
+.sw {
+  display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 6px;
+  box-shadow: inset 0 0 0 1px rgba(128,128,128,.55);
+}
+.error { color: var(--err); font-size: 13px; margin: .7rem 0 0; font-family: "JetBrains Mono", ui-monospace, monospace; white-space: pre-wrap; }
+.help { color: var(--muted); font-size: .9rem; margin: .7rem 0 0; }
+.fallback { max-width: 60ch; padding: 1rem 1.2rem; border-left: 3px solid var(--err); background: var(--panel); }
+@media (prefers-reduced-motion: reduce) { .meter-fill { transition: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div>
+      <h1>Atelier Shader</h1>
+      <p class="chapter">Chapitre 1 : un pixel, une couleur</p>
+    </div>
+    <nav aria-label="Niveaux"><ol id="levels" class="levels"></ol></nav>
+  </header>
+
+  <main class="grid" id="main">
+    <section class="lesson">
+      <h2 id="lvl-title"></h2>
+      <div id="lvl-text" class="text"></div>
+      <p id="lvl-goal" class="goal"></p>
+      <div class="actions">
+        <button id="btn-hint" class="btn" type="button">Afficher un indice</button>
+        <button id="btn-reset" class="btn" type="button">Recommencer le niveau</button>
+      </div>
+      <p id="hint" class="hint" hidden></p>
+    </section>
+
+    <section class="stage" aria-label="Rendu">
+      <div class="viewport">
+        <canvas id="view" role="img" aria-label="Rendu de ton shader"></canvas>
+        <div id="overlay" class="overlay"><div id="probe" class="probe-mark" aria-hidden="true"></div></div>
+      </div>
+      <p id="probe-text" class="probe-text"></p>
+
+      <div id="target-panel" class="target-panel">
+        <figure class="target">
+          <canvas id="target" role="img" aria-label="Image cible à reproduire"></canvas>
+          <figcaption>Cible</figcaption>
+        </figure>
+        <div class="meter-wrap">
+          <div class="meter-head"><span>Ressemblance avec la cible</span><strong id="score">0&#8239;%</strong></div>
+          <div class="meter"><div id="meter-fill" class="meter-fill"></div></div>
+          <div id="win" class="win" hidden role="status">
+            <p id="win-text"></p>
+            <button id="btn-next" class="btn primary" type="button">Niveau suivant</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="sandbox-panel" class="sandbox-panel" hidden>
+        <p>Pas de cible ici : le bac à sable est à toi.</p>
+        <button id="btn-copy" class="btn primary" type="button">Copier le shader</button>
+        <span id="copy-status" class="copy-status" role="status"></span>
+      </div>
+    </section>
+
+    <section class="code-panel">
+      <div class="code-head">
+        <h3>Ton code</h3>
+        <button id="btn-edit" class="btn" type="button" aria-pressed="false">Modifier le code</button>
+      </div>
+      <div id="code" class="code"></div>
+      <textarea id="editor" class="code editor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Code du shader" hidden></textarea>
+      <p id="error" class="error" role="alert" hidden></p>
+      <p id="code-help" class="help"></p>
+    </section>
+  </main>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- Niveaux ---------- */
+const LEVELS = [
+  {
+    title: 'Une seule couleur',
+    text: `<p>Un shader est une petite fonction que la carte graphique exécute pour chaque pixel de l’image, tous en même temps. Elle reçoit la position du pixel et renvoie sa couleur : trois nombres entre 0 et 1, pour le rouge, le vert et le bleu.</p>
+<p>Clique n’importe où sur l’image : les valeurs affichées dans le code sont toujours les mêmes, car ce shader ignore la position.</p>`,
+    goal: 'Glisse les nombres roses vers la gauche ou la droite jusqu’à obtenir la couleur de la cible.',
+    hint: 'La cible est orange : beaucoup de rouge, un peu de vert, presque pas de bleu.',
+    win: 'Réussi ! Tu viens de colorier chaque pixel de l’image.',
+    code:
+`vec3 couleur(vec2 uv) {
+  float rouge = 0.20;
+  float vert = 0.40;
+  float bleu = 0.90;
+  return vec3(rouge, vert, bleu);
+}`,
+    target:
+`vec3 couleur(vec2 uv) {
+  return vec3(1.00, 0.55, 0.10);
+}`
+  },
+  {
+    title: 'Chaque pixel connaît sa place',
+    text: `<p>La fonction reçoit <code>uv</code>, la position du pixel. <code>uv.x</code> va de 0 à gauche jusqu’à 1 à droite, <code>uv.y</code> de 0 en bas jusqu’à 1 en haut.</p>
+<p>Clique à plusieurs endroits de l’image : cette fois, les valeurs changent. Chaque pixel fait son propre calcul avec sa propre position.</p>`,
+    goal: 'Règle les trois nombres pour reproduire la cible.',
+    hint: 'Le rouge augmente vers la droite, un peu de vert monte vers le haut, et il y a du bleu partout.',
+    win: 'Réussi ! Chaque pixel a calculé sa couleur à partir de sa propre position.',
+    code:
+`vec3 couleur(vec2 uv) {
+  float x = uv.x;
+  float y = uv.y;
+  return vec3(x * 1.00, y * 0.00, 0.00);
+}`,
+    target:
+`vec3 couleur(vec2 uv) {
+  return vec3(uv.x * 1.00, uv.y * 0.40, 0.70);
+}`
+  },
+  {
+    title: 'Mélanger deux couleurs',
+    text: `<p><code>mix(a, b, t)</code> mélange deux couleurs. Avec <code>t</code> à 0 on obtient <code>a</code>, avec <code>t</code> à 1 on obtient <code>b</code>, et entre les deux un dégradé.</p>
+<p>Ici <code>t</code> vaut <code>uv.x</code>, donc le dégradé va de gauche à droite.</p>`,
+    goal: 'La cible se dégrade de bas en haut, vers un autre violet. Pour changer la direction, clique sur « Modifier le code » et écris la ligne toi-même.',
+    hint: 'Remplace <code>uv.x</code> par <code>uv.y</code>, reviens aux curseurs, puis ajuste la couleur <code>b</code>.',
+    win: 'Réussi ! Tu as écrit ta première ligne de shader.',
+    code:
+`vec3 couleur(vec2 uv) {
+  vec3 a = vec3(1.00, 0.45, 0.20);
+  vec3 b = vec3(0.20, 0.30, 0.80);
+  float t = uv.x;
+  return mix(a, b, t);
+}`,
+    target:
+`vec3 couleur(vec2 uv) {
+  return mix(vec3(1.00, 0.45, 0.20), vec3(0.55, 0.15, 0.75), uv.y);
+}`
+  },
+  {
+    title: 'Dessiner un cercle',
+    text: `<p><code>distance(uv, centre)</code> mesure à quelle distance chaque pixel se trouve du centre. <code>smoothstep</code> transforme cette distance en transition douce : 1 (blanc) près du centre, 0 (noir) au-delà.</p>
+<p>Les deux premiers nombres de <code>smoothstep</code> indiquent où le bord commence et où il finit. Plus ils sont écartés, plus le bord est flou.</p>`,
+    goal: 'Déplace le centre directement sur l’image, puis règle la taille et le flou du bord.',
+    hint: 'Le cercle de la cible est plus grand et beaucoup plus flou : écarte les deux nombres de <code>smoothstep</code>.',
+    win: 'Réussi ! Un cercle, sans aucune fonction de dessin : juste une distance.',
+    code:
+`vec3 couleur(vec2 uv) {
+  vec2 centre = vec2(0.50, 0.50);
+  float d = distance(uv, centre);
+  float cercle = 1.0 - smoothstep(0.20, 0.22, d);
+  return vec3(cercle);
+}`,
+    target:
+`vec3 couleur(vec2 uv) {
+  float d = distance(uv, vec2(0.35, 0.60));
+  return vec3(1.0 - smoothstep(0.15, 0.40, d));
+}`
+  },
+  {
+    title: 'Des points de couleur',
+    text: `<p>Chaque point a une couleur et un poids (<code>w1</code>, <code>w2</code>) qui diminue quand on s’en éloigne. La dernière ligne fait la moyenne des couleurs, pondérée par ces poids.</p>
+<p>C’est exactement ainsi que fonctionne un mesh gradient.</p>`,
+    goal: 'Place les deux points comme dans la cible et règle la netteté du mélange.',
+    hint: 'Le point rose est en haut à gauche, le bleu en bas à droite. Le mélange de la cible est plus net : augmente les deux nombres <code>4.00</code>.',
+    win: 'Réussi ! Tu viens d’écrire le moteur d’un générateur de mesh gradients.',
+    code:
+`vec3 couleur(vec2 uv) {
+  vec2 p1 = vec2(0.30, 0.30);
+  vec2 p2 = vec2(0.70, 0.70);
+  vec3 c1 = vec3(1.00, 0.30, 0.45);
+  vec3 c2 = vec3(0.20, 0.50, 1.00);
+  float w1 = exp(-distance(uv, p1) * 4.00);
+  float w2 = exp(-distance(uv, p2) * 4.00);
+  return (c1 * w1 + c2 * w2) / (w1 + w2);
+}`,
+    target:
+`vec3 couleur(vec2 uv) {
+  vec2 p1 = vec2(0.20, 0.75);
+  vec2 p2 = vec2(0.80, 0.30);
+  float w1 = exp(-distance(uv, p1) * 8.00);
+  float w2 = exp(-distance(uv, p2) * 8.00);
+  return (vec3(1.00, 0.30, 0.45) * w1 + vec3(0.20, 0.50, 1.00) * w2) / (w1 + w2);
+}`
+  },
+  {
+    title: 'Bac à sable',
+    text: `<p><code>temps</code> contient le nombre de secondes écoulées depuis l’ouverture de la page. Glissé dans <code>sin</code> et <code>cos</code>, il fait bouger les points.</p>
+<p>Ici, pas de cible : modifie, casse, recommence.</p>`,
+    goal: 'Ajoute un quatrième point, change les couleurs, ralentis l’animation. Quand le résultat te plaît, copie le shader.',
+    hint: 'Pour un quatrième point, duplique les lignes de <code>p3</code>, <code>c3</code> et <code>w3</code>, puis ajoute-le dans la dernière ligne.',
+    code:
+`vec3 couleur(vec2 uv) {
+  vec2 p1 = vec2(0.30, 0.30);
+  vec2 p2 = vec2(0.70, 0.60);
+  vec2 p3 = vec2(0.50, 0.85);
+  p1 += vec2(sin(temps * 0.70), cos(temps * 0.50)) * 0.15;
+  p2 += vec2(cos(temps * 0.60), sin(temps * 0.80)) * 0.15;
+  vec3 c1 = vec3(1.00, 0.35, 0.45);
+  vec3 c2 = vec3(0.25, 0.45, 1.00);
+  vec3 c3 = vec3(1.00, 0.85, 0.30);
+  float w1 = exp(-distance(uv, p1) * 5.00);
+  float w2 = exp(-distance(uv, p2) * 5.00);
+  float w3 = exp(-distance(uv, p3) * 5.00);
+  return (c1 * w1 + c2 * w2 + c3 * w3) / (w1 + w2 + w3);
+}`,
+    target: null
+  }
+];
+
+/* ---------- GLSL ---------- */
+const VERT = `#version 300 es
+in vec2 p;
+void main() { gl_Position = vec4(p, 0.0, 1.0); }`;
+
+const HEAD = '#version 300 es\nprecision highp float;\nuniform vec2 uRes;\nuniform float temps;\nout vec4 fragColor;\n';
+const HEAD_LINES = 5;
+const MAIN_TAIL = `
+void main() {
+  vec2 uv = gl_FragCoord.xy / uRes;
+  fragColor = vec4(clamp(couleur(uv), 0.0, 1.0), 1.0);
+}`;
+const PROBE_HEAD = HEAD + `uniform vec2 probeUV;
+uniform int probeVar;
+uniform int probeComp;
+float probePick(float v) { return v; }
+float probePick(vec2 v) { return v[probeComp]; }
+float probePick(vec3 v) { return v[probeComp]; }
+float probePick(vec4 v) { return v[probeComp]; }
+`;
+const PROBE_TAIL = `
+void main() {
+  float v = probeRun(probeUV);
+  uint b = floatBitsToUint(v);
+  fragColor = vec4(float(b & 255u), float((b >> 8u) & 255u), float((b >> 16u) & 255u), float(b >> 24u)) / 255.0;
+}`;
+
+const T0 = performance.now();
+const now = () => (performance.now() - T0) / 1000;
+
+class GL {
+  constructor(canvas) {
+    const gl = canvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: false });
+    if (!gl) throw new Error('webgl2');
+    this.gl = gl;
+    gl.disable(gl.DITHER);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    this.vs = this.shader(gl.VERTEX_SHADER, VERT).shader;
+    this.fbos = {};
+    this.px4 = new Uint8Array(4);
+  }
+  shader(type, src) {
+    const gl = this.gl, s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      const log = gl.getShaderInfoLog(s) || 'Erreur inconnue';
+      gl.deleteShader(s);
+      return { error: log };
+    }
+    return { shader: s };
+  }
+  program(fs) {
+    const gl = this.gl, r = this.shader(gl.FRAGMENT_SHADER, fs);
+    if (r.error) return { error: r.error };
+    const p = gl.createProgram();
+    gl.attachShader(p, this.vs);
+    gl.attachShader(p, r.shader);
+    gl.bindAttribLocation(p, 0, 'p');
+    gl.linkProgram(p);
+    gl.deleteShader(r.shader);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+      const log = gl.getProgramInfoLog(p) || 'Erreur de liaison';
+      gl.deleteProgram(p);
+      return { error: log };
+    }
+    return { program: p, locs: {} };
+  }
+  free(prog) { if (prog && prog.program) this.gl.deleteProgram(prog.program); }
+  fbo(size) {
+    if (this.fbos[size]) return this.fbos[size];
+    const gl = this.gl, tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    return (this.fbos[size] = fb);
+  }
+  draw(prog, w, h, fb, probe) {
+    const gl = this.gl;
+    const u = n => (n in prog.locs) ? prog.locs[n] : (prog.locs[n] = gl.getUniformLocation(prog.program, n));
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb || null);
+    gl.viewport(0, 0, w, h);
+    gl.useProgram(prog.program);
+    gl.uniform2f(u('uRes'), w, h);
+    gl.uniform1f(u('temps'), now());
+    if (probe) {
+      gl.uniform2f(u('probeUV'), probe.x, probe.y);
+      gl.uniform1i(u('probeVar'), probe.k);
+      gl.uniform1i(u('probeComp'), probe.c);
+    }
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+  pixels(prog, n) {
+    const gl = this.gl;
+    this.draw(prog, n, n, this.fbo(n));
+    const out = new Uint8Array(n * n * 4);
+    gl.readPixels(0, 0, n, n, gl.RGBA, gl.UNSIGNED_BYTE, out);
+    return out;
+  }
+  probe(prog, x, y, k, c) {
+    const gl = this.gl;
+    this.draw(prog, 1, 1, this.fbo(1), { x, y, k, c });
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, this.px4);
+    return new DataView(this.px4.buffer).getFloat32(0, true);
+  }
+}
+
+/* ---------- Analyse du code pour l'inspecteur ---------- */
+const DIMS = { float: 1, vec2: 2, vec3: 3, vec4: 4 };
+const count = (s, ch) => s.split(ch).length - 1;
+
+function buildProbe(src) {
+  const lines = src.split('\n');
+  const out = [], vars = [], returnLines = [];
+  const sigRe = /^\s*vec3\s+couleur\s*\(\s*vec2\s+uv\s*\)/;
+  let inFn = false, done = false, depth = 0, sigLine = -1;
+  lines.forEach((line, i) => {
+    const bare = line.replace(/\/\/.*$/, '');
+    if (!inFn && !done && sigRe.test(bare)) {
+      inFn = true; sigLine = i;
+      out.push(line.replace(/vec3\s+couleur/, 'float probeRun'));
+      depth += count(bare, '{') - count(bare, '}');
+      return;
+    }
+    if (inFn) {
+      const before = depth;
+      depth += count(bare, '{') - count(bare, '}');
+      const ret = bare.match(/^(\s*)return\s+(.+?);\s*$/);
+      if (ret) {
+        out.push(`${ret[1]}return probePick(${ret[2]});`);
+        returnLines.push(i);
+      } else {
+        out.push(line);
+        const dm = before === 1 && bare.match(/^\s*(float|vec2|vec3|vec4)\s+([A-Za-z_]\w*)\s*=[^;]*;\s*$/);
+        if (dm) {
+          out.push(`if (probeVar == ${vars.length}) return probePick(${dm[2]});`);
+          vars.push({ line: i, type: dm[1], name: dm[2] });
+        }
+      }
+      if (depth <= 0 && before > 0) { inFn = false; done = true; }
+      return;
+    }
+    out.push(line);
+  });
+  return { code: out.join('\n'), vars, returnLines, sigLine };
+}
+
+function parseHandles(code) {
+  const re = /vec2\s+([A-Za-z_]\w*)\s*=\s*vec2\(\s*(-?\d*\.\d+|-?\d+\.\d*)\s*,\s*(-?\d*\.\d+|-?\d+\.\d*)\s*\)\s*;/dg;
+  const out = [];
+  let m;
+  while ((m = re.exec(code))) {
+    out.push({ name: m[1], x: parseFloat(m[2]), y: parseFloat(m[3]), ix: m.indices[2], iy: m.indices[3] });
+  }
+  return out;
+}
+
+/* ---------- État ---------- */
+const $ = s => document.querySelector(s);
+const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const clamp01 = v => Math.min(1, Math.max(0, v));
+const N = 48;
+const STORE = 'atelier-shader-v1';
+
+const el = {
+  levels: $('#levels'), title: $('#lvl-title'), text: $('#lvl-text'), goal: $('#lvl-goal'),
+  hint: $('#hint'), btnHint: $('#btn-hint'), btnReset: $('#btn-reset'),
+  view: $('#view'), overlay: $('#overlay'), probe: $('#probe'), probeText: $('#probe-text'),
+  targetPanel: $('#target-panel'), target: $('#target'), score: $('#score'), fill: $('#meter-fill'),
+  win: $('#win'), winText: $('#win-text'), btnNext: $('#btn-next'),
+  sandbox: $('#sandbox-panel'), btnCopy: $('#btn-copy'), copyStatus: $('#copy-status'),
+  code: $('#code'), editor: $('#editor'), btnEdit: $('#btn-edit'), error: $('#error'), help: $('#code-help')
+};
+
+const state = {
+  level: 0, code: '', editing: false, probe: { x: .5, y: .5 },
+  prog: null, probeProg: null, probeInfo: null, probeVals: null,
+  tprog: null, targetPixels: null, won: false, solved: new Set(),
+  animated: false, dirty: true, dragHandle: null, scrubbing: false, errLine: -1, lastProbe: 0
+};
+
+function loadStore() { try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { return {}; } }
+function saveStore() { try { localStorage.setItem(STORE, JSON.stringify({ solved: [...state.solved], level: state.level })); } catch (e) {} }
+
+let view, tview;
+try {
+  view = new GL(el.view);
+  tview = new GL(el.target);
+} catch (e) {
+  $('#main').innerHTML = '<p class="fallback">Ce navigateur ne prend pas en charge WebGL 2, nécessaire pour faire tourner les shaders. Essaie avec une version récente de Chrome, Firefox, Safari ou Edge.</p>';
+  return;
+}
+
+/* ---------- Planification ---------- */
+let compilePending = false, compileTimer = null, renderPending = false, probePending = false;
+function scheduleCompile(delay) {
+  clearTimeout(compileTimer);
+  if (delay) { compileTimer = setTimeout(() => scheduleCompile(0), delay); return; }
+  if (compilePending) return;
+  compilePending = true;
+  requestAnimationFrame(() => { compilePending = false; compile(); });
+}
+function scheduleRenderCode() {
+  if (renderPending) return;
+  renderPending = true;
+  requestAnimationFrame(() => { renderPending = false; if (!state.editing && !state.scrubbing) renderCode(); });
+}
+function scheduleProbe() {
+  if (probePending) return;
+  probePending = true;
+  requestAnimationFrame(() => { probePending = false; updateProbe(); });
+}
+function setCode(code, from) {
+  state.code = code;
+  if (state.editing && from !== 'editor') el.editor.value = code;
+  if (!state.editing && from !== 'scrub') scheduleRenderCode();
+  scheduleCompile(from === 'editor' ? 280 : 0);
+}
+
+/* ---------- Compilation ---------- */
+function compile() {
+  const r = view.program(HEAD + state.code + MAIN_TAIL);
+  if (r.error) { showError(r.error); return; }
+  hideError();
+  view.free(state.prog);
+  state.prog = r;
+  state.animated = /\btemps\b/.test(state.code);
+
+  const info = buildProbe(state.code);
+  const pr = view.program(PROBE_HEAD + info.code + PROBE_TAIL);
+  view.free(state.probeProg);
+  state.probeProg = pr.error ? null : pr;
+  state.probeInfo = info;
+
+  updateScore();
+  updateProbe();
+  if (!state.dragHandle) renderHandles();
+  state.dirty = true;
+}
+
+function showError(log) {
+  const m = /ERROR:\s*\d+:(\d+):\s*([^\n]*)/.exec(log);
+  let msg = log.split('\n')[0];
+  state.errLine = -1;
+  if (m) {
+    const ln = +m[1] - HEAD_LINES;
+    state.errLine = ln - 1;
+    msg = `Ligne ${ln} : ${m[2].trim()}`;
+  }
+  el.error.textContent = `Le shader ne compile pas, l’image garde la dernière version valide.\n${msg}`;
+  el.error.hidden = false;
+  markErrorLine();
+}
+function hideError() {
+  el.error.hidden = true;
+  state.errLine = -1;
+  markErrorLine();
+}
+function markErrorLine() {
+  el.code.querySelectorAll('.line').forEach((d, i) => d.classList.toggle('err-line', i === state.errLine));
+}
+
+/* ---------- Ressemblance ---------- */
+function updateScore() {
+  const L = LEVELS[state.level];
+  if (!L.target || !state.targetPixels || !state.prog) return;
+  const px = view.pixels(state.prog, N), t = state.targetPixels;
+  let s = 0;
+  for (let i = 0; i < px.length; i += 4) {
+    s += Math.abs(px[i] - t[i]) + Math.abs(px[i + 1] - t[i + 1]) + Math.abs(px[i + 2] - t[i + 2]);
+  }
+  const mean = s / (N * N * 3 * 255);
+  const score = Math.max(0, 1 - mean * 2) * 100;
+  el.score.textContent = `${Math.floor(score)}\u202f%`;
+  el.fill.style.width = `${score}%`;
+  el.fill.classList.toggle('done', score >= 97);
+  state.dirty = true;
+  if (score >= 97 && !state.won) {
+    state.won = true;
+    state.solved.add(state.level);
+    saveStore();
+    renderNav();
+    el.winText.textContent = L.win;
+    el.btnNext.hidden = state.level >= LEVELS.length - 1;
+    el.win.hidden = false;
+  }
+}
+
+/* ---------- Inspecteur de pixel ---------- */
+const fmt = v => Number.isFinite(v) ? (Math.abs(v) < 0.005 ? 0 : v).toFixed(2) : 'NaN';
+const swatch = vals => {
+  const [r, g, b] = vals.map(v => Math.round(clamp01(Number.isFinite(v) ? v : 0) * 255));
+  return `<span class="sw" style="background:rgb(${r},${g},${b})"></span>`;
+};
+const tuple = vals => `(${vals.map(fmt).join(', ')})`;
+
+function updateProbe() {
+  positionProbe();
+  updateProbeText();
+  const info = state.probeInfo;
+  if (!state.probeProg || !info) { state.probeVals = null; updateAnnotations(); return; }
+  const { x, y } = state.probe;
+  const vals = [];
+  if (info.sigLine >= 0) vals.push({ line: info.sigLine, html: `uv = ${tuple([x, y])}` });
+  info.vars.forEach((v, k) => {
+    const comps = [];
+    for (let c = 0; c < DIMS[v.type]; c++) comps.push(view.probe(state.probeProg, x, y, k, c));
+    const html = v.type === 'float' ? `= ${fmt(comps[0])}`
+      : v.type === 'vec3' ? `${swatch(comps)}${tuple(comps)}`
+      : `= ${tuple(comps)}`;
+    vals.push({ line: v.line, html });
+  });
+  if (info.returnLines.length) {
+    const comps = [0, 1, 2].map(c => view.probe(state.probeProg, x, y, -1, c));
+    vals.push({ line: info.returnLines[info.returnLines.length - 1], html: `${swatch(comps)}pixel ${tuple(comps.map(clamp01))}` });
+  }
+  state.probeVals = vals;
+  state.dirty = true;
+  updateAnnotations();
+}
+function updateAnnotations() {
+  if (state.editing) return;
+  el.code.querySelectorAll('.ann').forEach(a => { a.innerHTML = ''; });
+  if (!state.probeVals) return;
+  for (const pv of state.probeVals) {
+    const a = el.code.querySelector(`.line[data-line="${pv.line}"] .ann`);
+    if (a) a.innerHTML = pv.html;
+  }
+}
+function positionProbe() {
+  el.probe.style.left = `${state.probe.x * 100}%`;
+  el.probe.style.top = `${(1 - state.probe.y) * 100}%`;
+}
+function updateProbeText() {
+  const p = `<code>uv = ${tuple([state.probe.x, state.probe.y])}</code>`;
+  el.probeText.innerHTML = state.editing
+    ? `Pixel inspecté : ${p}. Reviens aux curseurs pour voir ses valeurs dans le code.`
+    : `Pixel inspecté : ${p}. Clique ou glisse sur l’image pour en choisir un autre, ses valeurs s’affichent dans le code.`;
+}
+
+/* ---------- Affichage du code ---------- */
+const KW = new Set(['float', 'vec2', 'vec3', 'vec4', 'int', 'bool', 'return', 'if', 'else', 'for', 'void', 'const', 'true', 'false']);
+const FN = new Set(['mix', 'distance', 'smoothstep', 'step', 'sin', 'cos', 'tan', 'length', 'clamp', 'exp', 'abs', 'fract', 'floor', 'ceil', 'pow', 'min', 'max', 'dot', 'normalize', 'atan', 'mod', 'sqrt']);
+const INPUTS = new Set(['uv', 'temps']);
+
+function renderCode() {
+  el.code.innerHTML = '';
+  const lines = state.code.split('\n');
+  let offset = 0;
+  lines.forEach((line, i) => {
+    const div = mk('div', 'line');
+    div.dataset.line = i;
+    const re = /(\/\/.*)|([A-Za-z_]\w*)|(\d+\.\d*|\.\d+)|(\d+)|(\s+)|([\s\S])/g;
+    let m;
+    while ((m = re.exec(line))) {
+      const t = m[0];
+      if (m[1]) div.appendChild(mk('span', 'cm', t));
+      else if (m[2]) div.appendChild(mk('span', KW.has(t) ? 'kw' : FN.has(t) ? 'fn' : INPUTS.has(t) ? 'in' : '', t));
+      else if (m[3]) {
+        const s = mk('span', 'num', t);
+        s.dataset.start = offset + m.index;
+        s.tabIndex = 0;
+        s.setAttribute('role', 'slider');
+        s.setAttribute('aria-valuenow', t);
+        s.setAttribute('aria-label', `Nombre ${t}, flèches pour ajuster`);
+        div.appendChild(s);
+      } else div.appendChild(document.createTextNode(t));
+    }
+    div.appendChild(mk('span', 'ann'));
+    el.code.appendChild(div);
+    offset += line.length + 1;
+  });
+  markErrorLine();
+  updateAnnotations();
+}
+
+/* Glisser un nombre */
+el.code.addEventListener('pointerdown', e => {
+  const n = e.target.closest('.num');
+  if (!n || e.button > 0) return;
+  e.preventDefault();
+  n.setPointerCapture(e.pointerId);
+  const start = +n.dataset.start, v0 = parseFloat(n.textContent), x0 = e.clientX;
+  let len = n.textContent.length, moved = false;
+  state.scrubbing = true;
+  n.classList.add('active');
+  document.body.classList.add('scrubbing');
+  const move = ev => {
+    const dx = ev.clientX - x0;
+    if (!moved && Math.abs(dx) < 3) return;
+    moved = true;
+    const fine = ev.shiftKey;
+    const txt = (v0 + dx * (fine ? 0.001 : 0.005)).toFixed(fine ? 3 : 2);
+    setCode(state.code.slice(0, start) + txt + state.code.slice(start + len), 'scrub');
+    len = txt.length;
+    n.textContent = txt;
+  };
+  const up = () => {
+    n.removeEventListener('pointermove', move);
+    n.removeEventListener('pointerup', up);
+    n.removeEventListener('pointercancel', up);
+    state.scrubbing = false;
+    document.body.classList.remove('scrubbing');
+    renderCode();
+    if (!moved) { const f = el.code.querySelector(`.num[data-start="${start}"]`); if (f) f.focus(); }
+  };
+  n.addEventListener('pointermove', move);
+  n.addEventListener('pointerup', up);
+  n.addEventListener('pointercancel', up);
+});
+el.code.addEventListener('keydown', e => {
+  const n = e.target.closest('.num');
+  if (!n) return;
+  const dir = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
+  if (!dir) return;
+  e.preventDefault();
+  const start = +n.dataset.start, len = n.textContent.length;
+  const txt = (parseFloat(n.textContent) + dir * (e.shiftKey ? 0.1 : 0.01)).toFixed(2);
+  setCode(state.code.slice(0, start) + txt + state.code.slice(start + len), 'scrub');
+  renderCode();
+  const f = el.code.querySelector(`.num[data-start="${start}"]`);
+  if (f) f.focus();
+});
+
+/* ---------- Poignées et inspection sur l'image ---------- */
+function renderHandles() {
+  el.overlay.querySelectorAll('.handle').forEach(h => h.remove());
+  parseHandles(state.code).forEach(h => {
+    const d = mk('div', 'handle');
+    d.dataset.name = h.name;
+    d.tabIndex = 0;
+    d.setAttribute('role', 'button');
+    d.setAttribute('aria-label', `Point ${h.name}, glisse ou utilise les flèches pour le déplacer`);
+    d.style.left = `${clamp01(h.x) * 100}%`;
+    d.style.top = `${(1 - clamp01(h.y)) * 100}%`;
+    d.appendChild(mk('span', '', h.name));
+    el.overlay.appendChild(d);
+  });
+}
+function moveHandle(name, x, y) {
+  const h = parseHandles(state.code).find(h => h.name === name);
+  if (!h) return;
+  let c = state.code;
+  c = c.slice(0, h.iy[0]) + y.toFixed(2) + c.slice(h.iy[1]);
+  c = c.slice(0, h.ix[0]) + x.toFixed(2) + c.slice(h.ix[1]);
+  setCode(c);
+}
+el.overlay.addEventListener('pointerdown', e => {
+  if (e.button > 0) return;
+  e.preventDefault();
+  const rect = el.overlay.getBoundingClientRect();
+  const pos = ev => ({ x: clamp01((ev.clientX - rect.left) / rect.width), y: clamp01(1 - (ev.clientY - rect.top) / rect.height) });
+  const h = e.target.closest('.handle');
+  el.overlay.setPointerCapture(e.pointerId);
+  let move;
+  if (h) {
+    state.dragHandle = h.dataset.name;
+    h.classList.add('dragging');
+    move = ev => {
+      const p = pos(ev);
+      h.style.left = `${p.x * 100}%`;
+      h.style.top = `${(1 - p.y) * 100}%`;
+      moveHandle(state.dragHandle, p.x, p.y);
+    };
+  } else {
+    move = ev => { state.probe = pos(ev); positionProbe(); scheduleProbe(); };
+    move(e);
+  }
+  const up = () => {
+    el.overlay.removeEventListener('pointermove', move);
+    el.overlay.removeEventListener('pointerup', up);
+    el.overlay.removeEventListener('pointercancel', up);
+    if (state.dragHandle) { state.dragHandle = null; renderHandles(); }
+  };
+  el.overlay.addEventListener('pointermove', move);
+  el.overlay.addEventListener('pointerup', up);
+  el.overlay.addEventListener('pointercancel', up);
+});
+el.overlay.addEventListener('keydown', e => {
+  const h = e.target.closest('.handle');
+  if (!h) return;
+  const d = { ArrowUp: [0, 1], ArrowDown: [0, -1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.key];
+  if (!d) return;
+  e.preventDefault();
+  const cur = parseHandles(state.code).find(x => x.name === h.dataset.name);
+  if (!cur) return;
+  const step = e.shiftKey ? 0.05 : 0.01;
+  const name = h.dataset.name;
+  moveHandle(name, clamp01(cur.x + d[0] * step), clamp01(cur.y + d[1] * step));
+  compile();
+  const again = el.overlay.querySelector(`.handle[data-name="${name}"]`);
+  if (again) again.focus();
+});
+
+/* ---------- Niveaux ---------- */
+function renderNav() {
+  el.levels.innerHTML = '';
+  LEVELS.forEach((L, i) => {
+    const li = mk('li');
+    const b = mk('button', 'lvl', String(i + 1));
+    b.type = 'button';
+    b.title = L.title;
+    const solved = state.solved.has(i);
+    b.setAttribute('aria-label', `Niveau ${i + 1} : ${L.title}${solved ? ' (réussi)' : ''}`);
+    if (solved) b.classList.add('solved');
+    if (i === state.level) b.setAttribute('aria-current', 'step');
+    b.addEventListener('click', () => loadLevel(i));
+    li.appendChild(b);
+    el.levels.appendChild(li);
+  });
+}
+
+function setEditing(on) {
+  state.editing = on;
+  el.btnEdit.setAttribute('aria-pressed', String(on));
+  el.btnEdit.textContent = on ? 'Revenir aux curseurs' : 'Modifier le code';
+  el.code.hidden = on;
+  el.editor.hidden = !on;
+  el.help.textContent = on
+    ? 'Écris directement dans le code. L’image se met à jour dès que le shader compile.'
+    : 'Glisse les nombres roses vers la gauche ou la droite. Maintiens Maj pour plus de précision.';
+  if (on) {
+    el.editor.value = state.code;
+    autoSize();
+    el.editor.focus();
+  } else {
+    renderCode();
+    updateProbe();
+  }
+  updateProbeText();
+}
+function autoSize() { el.editor.style.height = 'auto'; el.editor.style.height = `${el.editor.scrollHeight + 4}px`; }
+
+function loadLevel(i) {
+  const L = LEVELS[i];
+  state.level = i;
+  state.won = false;
+  state.code = L.code;
+  state.probe = { x: .5, y: .5 };
+  if (state.editing) setEditing(false);
+
+  el.title.textContent = L.title;
+  el.text.innerHTML = L.text;
+  el.goal.innerHTML = L.goal;
+  el.hint.innerHTML = L.hint;
+  el.hint.hidden = true;
+  el.btnHint.textContent = 'Afficher un indice';
+  el.win.hidden = true;
+  el.copyStatus.textContent = '';
+
+  tview.free(state.tprog);
+  state.tprog = null;
+  state.targetPixels = null;
+  if (L.target) {
+    el.targetPanel.hidden = false;
+    el.sandbox.hidden = true;
+    const t = tview.program(HEAD + L.target + MAIN_TAIL);
+    if (!t.error) {
+      state.tprog = t;
+      state.targetPixels = tview.pixels(t, N);
+      drawTarget();
+    }
+  } else {
+    el.targetPanel.hidden = true;
+    el.sandbox.hidden = false;
+  }
+  renderNav();
+  renderCode();
+  compile();
+  saveStore();
+}
+
+function fit(canvas) {
+  const r = canvas.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(1, Math.round(r.width * dpr));
+  if (canvas.width !== w || canvas.height !== w) { canvas.width = w; canvas.height = w; return true; }
+  return false;
+}
+function drawTarget() {
+  if (!state.tprog) return;
+  fit(el.target);
+  tview.draw(state.tprog, el.target.width, el.target.height, null);
+}
+
+new ResizeObserver(() => { if (fit(el.view)) state.dirty = true; }).observe(el.view);
+new ResizeObserver(() => drawTarget()).observe(el.target);
+
+function loop(t) {
+  if (state.prog && (state.animated || state.dirty)) {
+    view.draw(state.prog, el.view.width, el.view.height, null);
+    state.dirty = false;
+  }
+  if (state.animated && !state.editing && !state.scrubbing && t - state.lastProbe > 200) {
+    state.lastProbe = t;
+    updateProbe();
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ---------- Boutons ---------- */
+el.btnHint.addEventListener('click', () => {
+  el.hint.hidden = !el.hint.hidden;
+  el.btnHint.textContent = el.hint.hidden ? 'Afficher un indice' : 'Masquer l’indice';
+});
+el.btnReset.addEventListener('click', () => {
+  state.code = LEVELS[state.level].code;
+  if (state.editing) { el.editor.value = state.code; autoSize(); } else renderCode();
+  compile();
+});
+el.btnNext.addEventListener('click', () => { if (state.level < LEVELS.length - 1) loadLevel(state.level + 1); });
+el.btnEdit.addEventListener('click', () => setEditing(!state.editing));
+el.editor.addEventListener('input', () => { autoSize(); setCode(el.editor.value, 'editor'); });
+el.editor.addEventListener('keydown', e => {
+  if (e.key !== 'Tab' || e.shiftKey) return;
+  e.preventDefault();
+  const { selectionStart: a, selectionEnd: b, value } = el.editor;
+  el.editor.value = value.slice(0, a) + '  ' + value.slice(b);
+  el.editor.selectionStart = el.editor.selectionEnd = a + 2;
+  setCode(el.editor.value, 'editor');
+});
+el.btnCopy.addEventListener('click', async () => {
+  const full = HEAD + state.code + MAIN_TAIL;
+  try {
+    await navigator.clipboard.writeText(full);
+    el.copyStatus.textContent = 'Shader copié';
+  } catch (e) {
+    el.copyStatus.textContent = 'Copie bloquée par le navigateur : ouvre « Modifier le code » et copie le texte.';
+  }
+});
+
+/* ---------- Démarrage ---------- */
+const saved = loadStore();
+state.solved = new Set(Array.isArray(saved.solved) ? saved.solved : []);
+fit(el.view);
+loadLevel(Number.isInteger(saved.level) && saved.level >= 0 && saved.level < LEVELS.length ? saved.level : 0);
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

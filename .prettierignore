@@ -1,0 +1,11 @@
+dist/
+.astro/
+node_modules/
+prototypes/
+playwright-report/
+test-results/
+package-lock.json
+
+# Hand-written project docs: keep the author's formatting
+CLAUDE.md
+PLAN.md
