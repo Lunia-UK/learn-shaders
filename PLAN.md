@@ -45,7 +45,7 @@ Goal: one complete lesson runs from plain files, with all engine features workin
   Render `solution.glsl` once at 48×48 as the target; compare the learner's render at the same size (mean absolute difference, same formula as the prototype). Show the meter; at 97% or above, mark the lesson solved and show the success message.
   *Done when:* unit tests on the score function; the solved state persists in localStorage.
 
-- [ ] **0.9 Draggable handles.**
+- [x] **0.9 Draggable handles.**
   Any `vec2 name = vec2(x, y);` declaration listed in the lesson config becomes a handle on the canvas. Dragging rewrites the two literals; code view and render follow.
   *Done when:* the circle lesson from the prototype works with mouse, touch and arrow keys.
 

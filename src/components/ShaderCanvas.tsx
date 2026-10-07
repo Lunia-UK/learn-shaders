@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useEffectEvent, useState, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import type { ExplainedError } from '../engine/explain';
 import type { ProbeReading } from '../engine/probe';
 import { ShaderView, type ShaderViewState } from '../engine/view';
@@ -31,6 +38,8 @@ export interface ShaderCanvasProps {
   target?: string;
   /** Called with the similarity to the target (0 to 100) after each successful compile. */
   onScore?: (score: number | null) => void;
+  /** Tools drawn over the image, such as HandlesOverlay. They fill the image area. */
+  children?: ReactNode;
 }
 
 const NO_HELPERS: string[] = [];
@@ -56,6 +65,7 @@ export function ShaderCanvas({
   onProbe,
   target,
   onScore,
+  children,
 }: ShaderCanvasProps) {
   const [view, setView] = useState<ShaderView | null>(null);
   const [supported, setSupported] = useState(true);
@@ -133,6 +143,7 @@ export function ShaderCanvas({
         {supported && probe && onProbeMove && (
           <ProbeOverlay position={probe} onMove={onProbeMove} />
         )}
+        {supported && children}
         {!supported && (
           <p className={styles.unsupported}>
             This browser cannot show shaders: WebGL2 is not available. A recent version of Chrome,

@@ -101,6 +101,46 @@ export function scrubbableLiterals(code: string, scrub: 'all' | string[]): Numbe
   );
 }
 
+/** A point the learner can drag on the image: `vec2 name = vec2(x, y);` with two float literals. */
+export interface Vec2Handle {
+  name: string;
+  x: NumberLiteral;
+  y: NumberLiteral;
+}
+
+// What follows the name in a handle declaration: two plain floats and nothing else.
+const VEC2_LITERAL =
+  /^\s*=\s*vec2\s*\(\s*-?(?:\d+\.\d*|\.\d+)\s*,\s*-?(?:\d+\.\d*|\.\d+)\s*\)\s*;$/;
+
+/** Finds the `vec2 name = vec2(x, y);` declarations whose x and y are plain float literals. */
+export function findVec2Handles(code: string): Vec2Handle[] {
+  const masked = maskComments(code);
+  const literals = findNumberLiterals(code);
+  const handles: Vec2Handle[] = [];
+  for (const declaration of findDeclarations(code)) {
+    if (declaration.type !== 'vec2') continue;
+    const text = masked.slice(declaration.from, declaration.to);
+    const nameAt = text.search(new RegExp(`\\b${declaration.name}\\s*=`));
+    if (nameAt === -1 || !VEC2_LITERAL.test(text.slice(nameAt + declaration.name.length))) {
+      continue;
+    }
+    const [x, y] = literals.filter((l) => l.from >= declaration.from && l.to <= declaration.to);
+    handles.push({ name: declaration.name, x, y });
+  }
+  return handles;
+}
+
+/**
+ * Writes a new position into a handle's declaration, with at least two decimals.
+ * The y literal comes after x, so it is replaced first and x's offsets stay valid.
+ */
+export function moveVec2Handle(code: string, handle: Vec2Handle, x: number, y: number): string {
+  const yText = formatNumber(y, Math.max(handle.y.decimals, 2));
+  const xText = formatNumber(x, Math.max(handle.x.decimals, 2));
+  const withY = replaceLiteral(code, handle.y, yText).code;
+  return replaceLiteral(withY, handle.x, xText).code;
+}
+
 /** The declaration a literal belongs to, to name it ("red, 0.20"). */
 export function declarationAt(code: string, offset: number): Declaration | undefined {
   return findDeclarations(code).find((d) => offset >= d.from && offset < d.to);

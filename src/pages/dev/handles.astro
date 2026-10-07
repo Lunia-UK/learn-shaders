@@ -1,0 +1,42 @@
+---
+// Dev check for draggable handles, on the circle level of the chapter 1 prototype.
+// Used by tests/e2e/handles.spec.ts. Not linked from the site.
+import { site } from '../../config/site';
+import { HandlesCheck } from '../../components/dev/HandlesCheck';
+import '../../styles/tokens.css';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Handles check · {site.name}</title>
+  </head>
+  <body>
+    <main>
+      <h1>Handles check: draw a circle</h1>
+      <p>
+        Drag the center on the image (or Tab to it and use the arrow keys), then scrub the size and
+        the blur of the edge. Clicking elsewhere on the image moves the probe.
+      </p>
+      <HandlesCheck client:load />
+    </main>
+  </body>
+</html>
+
+<style>
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    line-height: 1.5;
+    color: var(--ink);
+    background: var(--paper);
+  }
+
+  main {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+</style>

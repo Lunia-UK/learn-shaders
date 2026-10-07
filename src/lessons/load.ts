@@ -2,6 +2,7 @@
 // the build, when a lesson points to a .glsl file that does not exist.
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { lessonSlug, readLessonFile } from './paths';
+import { checkLessonCode } from './validate';
 
 // Every .glsl file under the lessons folder, as text, keyed by path from the project root.
 // import.meta.glob only accepts a literal string, so LESSONS_DIR cannot be used here.
@@ -34,6 +35,13 @@ export async function getLessons(): Promise<Lesson[]> {
     starterCode: readLessonFile(entry.id, 'starter', entry.data.starter, glslFiles).trimEnd(),
     solutionCode: readLessonFile(entry.id, 'solution', entry.data.solution, glslFiles).trimEnd(),
   }));
+
+  for (const lesson of lessons) {
+    const problems = checkLessonCode(lesson.entry.data, lesson.starterCode);
+    if (problems.length > 0) {
+      throw new Error(`Lesson "${lesson.id}":\n- ${problems.join('\n- ')}`);
+    }
+  }
 
   const seen = new Map<string, string>();
   for (const lesson of lessons) {

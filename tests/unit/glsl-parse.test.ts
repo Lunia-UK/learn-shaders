@@ -3,8 +3,10 @@ import {
   declarationAt,
   findDeclarations,
   findNumberLiterals,
+  findVec2Handles,
   formatNumber,
   maskComments,
+  moveVec2Handle,
   replaceLiteral,
   scrubbableLiterals,
 } from '../../src/engine/glsl-parse';
@@ -100,6 +102,60 @@ describe('scrubbableLiterals', () => {
 
   it('leaves out literals written with an exponent', () => {
     expect(scrubbableLiterals('float a = 1e-3 + 0.5;', 'all').map((l) => l.text)).toEqual(['0.5']);
+  });
+});
+
+const CIRCLE = `vec3 color(vec2 uv) {
+  vec2 center = vec2(0.50, 0.50);
+  float d = distance(uv, center);
+  return vec3(1.0 - smoothstep(0.20, 0.22, d));
+}`;
+
+describe('findVec2Handles', () => {
+  it('finds a vec2 declared with two float literals', () => {
+    const [handle] = findVec2Handles(CIRCLE);
+    expect(handle.name).toBe('center');
+    expect([handle.x.text, handle.y.text]).toEqual(['0.50', '0.50']);
+    expect(CIRCLE.slice(handle.x.from, handle.x.to)).toBe('0.50');
+  });
+
+  it('accepts negative values and the short forms', () => {
+    const [handle] = findVec2Handles('vec2 p = vec2(-0.25, .5);');
+    expect([handle.x.value, handle.y.value]).toEqual([-0.25, 0.5]);
+  });
+
+  it('skips vec2 values that are not two plain numbers', () => {
+    const code = `vec2 a = vec2(0.5);
+vec2 b = vec2(0.5, 0.5) * 2.0;
+vec2 c = uv;
+vec2 d = vec2(1, 0);
+vec2 vec = vec2(0.10, 0.20);`;
+    expect(findVec2Handles(code).map((h) => h.name)).toEqual(['vec']);
+  });
+
+  it('ignores commented-out declarations', () => {
+    expect(findVec2Handles('// vec2 p = vec2(0.5, 0.5);')).toEqual([]);
+  });
+});
+
+describe('moveVec2Handle', () => {
+  it('writes the new position with two decimals', () => {
+    const [handle] = findVec2Handles(CIRCLE);
+    const moved = moveVec2Handle(CIRCLE, handle, 0.35, 0.6);
+    expect(moved.split('\n')[1]).toBe('  vec2 center = vec2(0.35, 0.60);');
+  });
+
+  it('keeps extra decimals the author wrote', () => {
+    const [handle] = findVec2Handles('vec2 p = vec2(0.125, 0.5);');
+    expect(moveVec2Handle('vec2 p = vec2(0.125, 0.5);', handle, 0.25, 0.75)).toBe(
+      'vec2 p = vec2(0.250, 0.75);',
+    );
+  });
+
+  it('replaces a signed value whole', () => {
+    const code = 'vec2 p = vec2(-0.50, 0.50);';
+    const [handle] = findVec2Handles(code);
+    expect(moveVec2Handle(code, handle, 0.2, 0.3)).toBe('vec2 p = vec2(0.20, 0.30);');
   });
 });
 
