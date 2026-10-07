@@ -1,0 +1,10 @@
+.codeView {
+  min-width: 0;
+}
+
+/* While a number is being dragged, the whole page shows the sideways cursor and selects nothing. */
+:global(html.scrubbing),
+:global(html.scrubbing *) {
+  cursor: ew-resize !important;
+  user-select: none;
+}

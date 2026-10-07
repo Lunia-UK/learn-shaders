@@ -1,0 +1,68 @@
+/* Design tokens, from the prototypes. Light by default, dark with the system setting,
+   and either one forced with <html data-theme="light|dark">. */
+
+:root {
+  --paper: #eef0f5;
+  --panel: #ffffff;
+  --ink: #1b1f3b;
+  --muted: #585e82;
+  --line: #d3d7e4;
+  --accent: #c8156a;
+  --ok: #1b8157;
+  --err: #c62828;
+
+  --code-bg: #f7f8fb;
+  --code-number: #c8156a;
+  --code-number-bg: rgb(200 21 106 / 0.08);
+  --code-keyword: #3446a8;
+  --code-function: #00747f;
+  --code-input: #a35300;
+  --code-comment: #6c7290;
+  --code-font: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #14162a;
+    --panel: #1c1f37;
+    --ink: #e6e8f5;
+    --muted: #a3a8ca;
+    --line: #2f3356;
+    --accent: #ff6ab0;
+    --ok: #4cc38a;
+    --err: #ff7b7b;
+
+    --code-bg: #171a30;
+    --code-number: #ff6ab0;
+    --code-number-bg: rgb(255 106 176 / 0.12);
+    --code-keyword: #a3acff;
+    --code-function: #4dd0e1;
+    --code-input: #ffb74d;
+    --code-comment: #8a90b4;
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --paper: #14162a;
+  --panel: #1c1f37;
+  --ink: #e6e8f5;
+  --muted: #a3a8ca;
+  --line: #2f3356;
+  --accent: #ff6ab0;
+  --ok: #4cc38a;
+  --err: #ff7b7b;
+
+  --code-bg: #171a30;
+  --code-number: #ff6ab0;
+  --code-number-bg: rgb(255 106 176 / 0.12);
+  --code-keyword: #a3acff;
+  --code-function: #4dd0e1;
+  --code-input: #ffb74d;
+  --code-comment: #8a90b4;
+
+  color-scheme: dark;
+}

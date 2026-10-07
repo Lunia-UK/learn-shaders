@@ -33,7 +33,7 @@ Goal: one complete lesson runs from plain files, with all engine features workin
   React component that renders lesson code, keeps the last valid program on compile error, redraws only when needed (or every frame if the code uses `time`), caps DPR at 2, handles resize.
   *Done when:* editing code in a plain textarea updates the render; a broken edit leaves the last image and shows the mapped error.
 
-- [ ] **0.6 CodeView with scrubbable numbers.**
+- [x] **0.6 CodeView with scrubbable numbers.**
   CodeMirror 6 with GLSL highlighting. Extension: float literals become scrubbable (drag horizontally, Shift for fine steps, arrow keys when focused). Lesson config decides which numbers are scrubbable (all, or only in named declarations) and whether the rest is read-only.
   *Done when:* matches prototype behavior; scrubbing does not rebuild the editor on every frame; keyboard works; unit tests cover literal detection.
 

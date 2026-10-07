@@ -1,0 +1,42 @@
+---
+// Dev check for CodeView: scrubbable numbers driving a ShaderCanvas.
+// Used by tests/e2e/code-view.spec.ts. Not linked from the site.
+import { site } from '../../config/site';
+import { CodeViewCheck } from '../../components/dev/CodeViewCheck';
+import '../../styles/tokens.css';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>CodeView check · {site.name}</title>
+  </head>
+  <body>
+    <main>
+      <h1>CodeView check</h1>
+      <p>
+        Drag a pink number sideways (Shift for fine steps), or Tab to it and use the arrow keys
+        (Shift for big steps). Only red, green and blue scrub until free edit is on.
+      </p>
+      <CodeViewCheck client:load />
+    </main>
+  </body>
+</html>
+
+<style>
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    line-height: 1.5;
+    color: var(--ink);
+    background: var(--paper);
+  }
+
+  main {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+</style>

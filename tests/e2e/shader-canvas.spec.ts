@@ -30,6 +30,14 @@ function framesDrawn(page: Page) {
   return page.evaluate(() => (window as unknown as CanvasWindow).shaderView!.framesDrawn);
 }
 
+/** Frames drawn so far, read after two animation frames so a pending redraw has happened. */
+function settledFrames(page: Page) {
+  return page.evaluate(async () => {
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    return (window as unknown as CanvasWindow).shaderView!.framesDrawn;
+  });
+}
+
 test('renders the starting code', async ({ page }) => {
   await openCheck(page);
   // The starting code is vec3(uv, 0.5): about one half on every channel at the center.
@@ -60,7 +68,7 @@ test('a broken edit keeps the last image and shows the mapped error', async ({ p
 
 test('a still image is drawn once; code using time is drawn every frame', async ({ page }) => {
   await openCheck(page);
-  const still = await framesDrawn(page);
+  const still = await settledFrames(page);
   await page.waitForTimeout(300);
   expect(await framesDrawn(page)).toBe(still);
   await expect(page.getByRole('button', { name: /animation/ })).toHaveCount(0);
@@ -71,8 +79,7 @@ test('a still image is drawn once; code using time is drawn every frame', async 
   await expect(page.getByRole('button', { name: 'Pause animation' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Pause animation' }).click();
-  await page.waitForTimeout(100);
-  const paused = await framesDrawn(page);
+  const paused = await settledFrames(page);
   await page.waitForTimeout(300);
   expect(await framesDrawn(page)).toBe(paused);
 });
@@ -85,7 +92,7 @@ test.describe('with reduced motion', () => {
     await page.getByLabel('Shader code').fill(ANIMATED);
     const play = page.getByRole('button', { name: 'Play animation' });
     await expect(play).toBeVisible();
-    const paused = await framesDrawn(page);
+    const paused = await settledFrames(page);
     await page.waitForTimeout(300);
     expect(await framesDrawn(page)).toBe(paused);
 
